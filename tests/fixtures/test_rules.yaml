@@ -1,0 +1,155 @@
+# Pratik's categorization rules for expense-planner
+# Rules are evaluated in order: exclude → remittance → income → expense override → default
+# First match wins within each section.
+#
+# Last updated: 2026-06-22 (seeded from Apr-Jun 2026 data)
+
+# --- Exclusions (internal transfers, double-counting) ---
+exclude_rules:
+  - match_field: category
+    pattern: "Transfer"
+    match_mode: exact
+    note: "Internal transfers between own accounts"
+
+  - match_field: category
+    pattern: "Credit Card Payment"
+    match_mode: contains
+    note: "CC payments are not real expenses (already counted on the CC)"
+
+# --- Remittances (real outflows, tracked separately from expenses) ---
+remittance_rules:
+  - match_field: category
+    pattern: "India Transfer"
+    match_mode: exact
+    assign_category: "India Transfer"
+
+# --- Income ---
+income_rules:
+  - match_field: category
+    pattern: "Paychecks"
+    match_mode: exact
+
+  - match_field: category
+    pattern: "Other Income"
+    match_mode: exact
+
+  - match_field: category
+    pattern: "Business Income"
+    match_mode: exact
+
+  - match_field: category
+    pattern: "Interest"
+    match_mode: exact
+
+# --- Expense category overrides ---
+# Reclassify Monarch's category into your preferred taxonomy.
+# If no override matches, Monarch's original category is used.
+expense_overrides:
+  - match_field: category
+    pattern: "Rent"
+    match_mode: exact
+    assign_category: "Housing"
+
+  - match_field: category
+    pattern: "Insurance"
+    match_mode: contains
+    assign_category: "Insurance"
+
+  - match_field: category
+    pattern: "Groceries"
+    match_mode: exact
+    assign_category: "Groceries"
+
+  - match_field: category
+    pattern: "Restaurants & Bars"
+    match_mode: exact
+    assign_category: "Dining"
+
+  - match_field: category
+    pattern: "Shopping"
+    match_mode: exact
+    assign_category: "Shopping"
+
+  - match_field: category
+    pattern: "Gas"
+    match_mode: exact
+    assign_category: "Auto"
+
+  - match_field: category
+    pattern: "Auto Maintenance"
+    match_mode: exact
+    assign_category: "Auto"
+
+  - match_field: category
+    pattern: "Entertainment & Recreation"
+    match_mode: exact
+    assign_category: "Entertainment"
+
+  - match_field: category
+    pattern: "Travel & Vacation"
+    match_mode: exact
+    assign_category: "Travel"
+
+  - match_field: category
+    pattern: "Travel Food"
+    match_mode: exact
+    assign_category: "Travel"
+
+  - match_field: category
+    pattern: "Taxi & Ride Shares"
+    match_mode: exact
+    assign_category: "Transport"
+
+  - match_field: category
+    pattern: "Parking & Tolls"
+    match_mode: exact
+    assign_category: "Transport"
+
+  - match_field: category
+    pattern: "Eva College"
+    match_mode: exact
+    assign_category: "Education"
+
+  - match_field: category
+    pattern: "Home Improvement"
+    match_mode: exact
+    assign_category: "Home"
+
+  - match_field: category
+    pattern: "Phone"
+    match_mode: exact
+    assign_category: "Utilities"
+
+  - match_field: category
+    pattern: "Fitness"
+    match_mode: exact
+    assign_category: "Health"
+
+  - match_field: category
+    pattern: "Medical"
+    match_mode: exact
+    assign_category: "Health"
+
+  - match_field: category
+    pattern: "Financial Fees"
+    match_mode: exact
+    assign_category: "Fees"
+
+  - match_field: category
+    pattern: "Postage & Shipping"
+    match_mode: exact
+    assign_category: "Shopping"
+
+  - match_field: category
+    pattern: "Vape & Nashe"
+    match_mode: exact
+    assign_category: "Personal"
+
+  # New categories from Monarch will auto-surface in the
+  # "Unknown Categories" report section. Add rules here to
+  # reclassify them into your preferred names.
+
+# --- Defaults ---
+defaults:
+  unmatched_type: expense
+  unmatched_category_behavior: keep_original

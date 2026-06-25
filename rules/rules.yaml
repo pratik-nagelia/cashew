@@ -1,0 +1,219 @@
+# Pratik's categorization rules for expense-planner
+# Rules evaluated: exclude → investment → remittance → income → expense override → default
+# First match wins within each section.
+#
+# Last updated: 2026-06-25 (cleaned up categories, merged duplicates)
+
+# --- Exclusions (internal transfers, double-counting) ---
+exclude_rules:
+  - match_field: category
+    pattern: "Transfer"
+    match_mode: exact
+    note: "Internal transfers between own accounts (fills CC payments etc)"
+
+  - match_field: category
+    pattern: "Credit Card Payment"
+    match_mode: contains
+    note: "CC payments are not real expenses (already counted on the CC)"
+
+# --- Investments (tracked separately — not expenses) ---
+investment_rules:
+  - match_field: category
+    pattern: "India Transfer"
+    match_mode: exact
+    assign_category: "India Transfer"
+
+  - match_field: merchant
+    pattern: "Robinhood"
+    match_mode: contains
+    assign_category: "Robinhood"
+
+# --- Remittances (real outflows, tracked separately from expenses) ---
+remittance_rules: []
+
+# --- Income ---
+income_rules:
+  - match_field: category
+    pattern: "Paychecks"
+    match_mode: exact
+    assign_category: "Paycheck"
+
+  - match_field: category
+    pattern: "Other Income"
+    match_mode: exact
+    assign_category: "Other Income"
+
+  - match_field: category
+    pattern: "Business Income"
+    match_mode: exact
+    assign_category: "Business Income"
+
+  - match_field: category
+    pattern: "Interest"
+    match_mode: exact
+    assign_category: "Interest"
+
+# --- Expense category overrides ---
+# Reclassify Monarch's category into your preferred taxonomy.
+# If no override matches, Monarch's original category is used.
+expense_overrides:
+  # Housing — rent payments
+  - match_field: category
+    pattern: "Rent"
+    match_mode: exact
+    assign_category: "Housing"
+
+  # Home Improvement — furniture, repairs, housewares
+  - match_field: category
+    pattern: "Home Improvement"
+    match_mode: exact
+    assign_category: "Home Improvement"
+
+  - match_field: category
+    pattern: "Furniture & Housewares"
+    match_mode: exact
+    assign_category: "Home Improvement"
+
+  # Auto — gas, maintenance, auto payments
+  - match_field: category
+    pattern: "Gas"
+    match_mode: exact
+    assign_category: "Auto"
+
+  - match_field: category
+    pattern: "Auto Maintenance"
+    match_mode: exact
+    assign_category: "Auto"
+
+  - match_field: category
+    pattern: "Auto Payment"
+    match_mode: exact
+    assign_category: "Auto"
+
+  # Transport — ride shares, parking, public transit
+  - match_field: category
+    pattern: "Taxi & Ride Shares"
+    match_mode: exact
+    assign_category: "Transport"
+
+  - match_field: category
+    pattern: "Parking & Tolls"
+    match_mode: exact
+    assign_category: "Transport"
+
+  - match_field: category
+    pattern: "Public Transit"
+    match_mode: exact
+    assign_category: "Transport"
+
+  # Fees — financial fees, legal services
+  - match_field: category
+    pattern: "Financial Fees"
+    match_mode: exact
+    assign_category: "Fees"
+
+  - match_field: category
+    pattern: "Financial & Legal Services"
+    match_mode: exact
+    assign_category: "Fees"
+
+  # Insurance
+  - match_field: category
+    pattern: "Insurance"
+    match_mode: contains
+    assign_category: "Insurance"
+
+  # Food
+  - match_field: category
+    pattern: "Groceries"
+    match_mode: exact
+    assign_category: "Groceries"
+
+  - match_field: category
+    pattern: "Restaurants & Bars"
+    match_mode: exact
+    assign_category: "Dining"
+
+  - match_field: category
+    pattern: "Coffee Shops"
+    match_mode: exact
+    assign_category: "Coffee Shops"
+
+  # Shopping
+  - match_field: category
+    pattern: "Shopping"
+    match_mode: exact
+    assign_category: "Shopping"
+
+  - match_field: category
+    pattern: "Postage & Shipping"
+    match_mode: exact
+    assign_category: "Shopping"
+
+  - match_field: category
+    pattern: "Electronics"
+    match_mode: exact
+    assign_category: "Shopping"
+
+  # Lifestyle
+  - match_field: category
+    pattern: "Entertainment & Recreation"
+    match_mode: exact
+    assign_category: "Entertainment"
+
+  - match_field: category
+    pattern: "Travel & Vacation"
+    match_mode: exact
+    assign_category: "Travel"
+
+  - match_field: category
+    pattern: "Travel Food"
+    match_mode: exact
+    assign_category: "Travel"
+
+  - match_field: category
+    pattern: "Clothing"
+    match_mode: exact
+    assign_category: "Clothing"
+
+  # Education
+  - match_field: category
+    pattern: "Eva College"
+    match_mode: exact
+    assign_category: "Education"
+
+  # Health
+  - match_field: category
+    pattern: "Fitness"
+    match_mode: exact
+    assign_category: "Health"
+
+  - match_field: category
+    pattern: "Medical"
+    match_mode: exact
+    assign_category: "Health"
+
+  # Utilities
+  - match_field: category
+    pattern: "Phone"
+    match_mode: exact
+    assign_category: "Utilities"
+
+  # Personal
+  - match_field: category
+    pattern: "Vape & Nashe"
+    match_mode: exact
+    assign_category: "Vape & Nashe"
+
+  - match_field: category
+    pattern: "Charity"
+    match_mode: exact
+    assign_category: "Personal"
+
+  # Refunds fall through to default — they keep their Monarch category
+  # and their positive amount naturally subtracts from the SUM
+
+# --- Defaults ---
+defaults:
+  unmatched_type: expense
+  unmatched_category_behavior: keep_original

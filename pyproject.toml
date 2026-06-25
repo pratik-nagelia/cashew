@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "expense-planner"
+version = "0.1.0"
+description = "Deterministic personal finance reports from Monarch Money"
+requires-python = ">=3.12"
+dependencies = [
+    "monarchmoneycommunity>=1.4.0",
+    "pyyaml>=6.0",
+    "rich>=13.0",
+    "plotly>=6.0",
+    "python-dotenv>=1.0",
+    "gspread>=6.0",
+    "google-auth-oauthlib>=1.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest"]
+
+[project.scripts]
+expense-planner = "expense_planner.__main__:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]

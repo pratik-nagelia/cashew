@@ -1,0 +1,175 @@
+"""Rules-based transaction categorizer."""
+
+from pathlib import Path
+from typing import Optional
+
+import yaml
+
+from .exceptions import ConfigError
+from .models import Transaction, TransactionType
+
+RULES_DIR = Path(__file__).parent.parent.parent / "rules"
+
+
+def load_rules(rules_file: Optional[str] = None) -> dict:
+    """Load categorization rules from YAML.
+
+    Args:
+        rules_file: Path to rules YAML. Defaults to rules/rules.yaml.
+
+    Returns:
+        Parsed rules dict with sections: exclude_rules, remittance_rules,
+        income_rules, expense_overrides, defaults.
+    """
+    if rules_file is None:
+        rules_file = str(RULES_DIR / "rules.yaml")
+
+    path = Path(rules_file)
+    if not path.exists():
+        raise ConfigError(f"Rules file not found: {rules_file}")
+
+    try:
+        with open(path) as f:
+            rules = yaml.safe_load(f)
+    except yaml.YAMLError as e:
+        raise ConfigError(f"Invalid YAML in {rules_file}: {e}") from e
+
+    if not isinstance(rules, dict):
+        raise ConfigError(f"Rules file must be a YAML mapping, got {type(rules).__name__}")
+
+    return rules
+
+
+def _get_field_value(txn: Transaction, field_name: str) -> str:
+    """Get the value of a match field from a transaction."""
+    field_map = {
+        "merchant": txn.merchant,
+        "category": txn.category,
+        "account": txn.account,
+        "plaid_name": txn.plaid_name or "",
+    }
+    return field_map.get(field_name, "")
+
+
+def _match(txn: Transaction, rule: dict) -> bool:
+    """Check if a transaction matches a single rule."""
+    field_name = rule.get("match_field", "")
+    value = _get_field_value(txn, field_name)
+    pattern = rule.get("pattern", "")
+    mode = rule.get("match_mode", "contains")
+
+    if mode == "exact":
+        return value.lower() == pattern.lower()
+    elif mode == "startswith":
+        return value.lower().startswith(pattern.lower())
+    elif mode == "contains":
+        return pattern.lower() in value.lower()
+    return False
+
+
+def _check_rules(txn: Transaction, rules_list: list[dict]) -> Optional[dict]:
+    """Check a transaction against a list of rules. Returns first matching rule or None."""
+    for rule in rules_list:
+        if _match(txn, rule):
+            return rule
+    return None
+
+
+def categorize(txn: Transaction, rules: dict) -> Transaction:
+    """Apply rules to a single transaction, setting resolved_type and resolved_category.
+
+    Evaluation order: exclude → investment → remittance → income → expense override → default.
+    First match wins within each section. Mutates and returns the transaction.
+    """
+    # Step 1: Skip transactions hidden from reports
+    if txn.hide_from_reports:
+        txn.resolved_type = TransactionType.EXCLUDE
+        txn.resolved_category = "Hidden"
+        return txn
+
+    # Step 2: Check exclude rules
+    rule = _check_rules(txn, rules.get("exclude_rules", []))
+    if rule:
+        txn.resolved_type = TransactionType.EXCLUDE
+        txn.resolved_category = rule.get("note", "Excluded")
+        return txn
+
+    # Step 3: Check investment rules
+    rule = _check_rules(txn, rules.get("investment_rules", []))
+    if rule:
+        txn.resolved_type = TransactionType.INVESTMENT
+        txn.resolved_category = rule.get("assign_category", txn.category)
+        return txn
+
+    # Step 4: Check remittance rules
+    rule = _check_rules(txn, rules.get("remittance_rules", []))
+    if rule:
+        txn.resolved_type = TransactionType.REMITTANCE
+        txn.resolved_category = rule.get("assign_category", txn.category)
+        return txn
+
+    # Step 5: Check income rules
+    rule = _check_rules(txn, rules.get("income_rules", []))
+    if rule:
+        txn.resolved_type = TransactionType.INCOME
+        txn.resolved_category = rule.get("assign_category", txn.category)
+        return txn
+
+    # Step 6: Check expense overrides
+    rule = _check_rules(txn, rules.get("expense_overrides", []))
+    if rule:
+        txn.resolved_type = TransactionType.EXPENSE
+        txn.resolved_category = rule.get("assign_category", txn.category)
+        return txn
+
+    # Step 7: Default — expense with original category
+    txn.resolved_type = TransactionType.EXPENSE
+    defaults = rules.get("defaults", {})
+    behavior = defaults.get("unmatched_category_behavior", "keep_original")
+    if behavior == "keep_original":
+        txn.resolved_category = txn.category
+    else:
+        txn.resolved_category = "Uncategorized"
+    return txn
+
+
+def categorize_all(
+    transactions: list[Transaction], rules_file: Optional[str] = None
+) -> list[Transaction]:
+    """Categorize all transactions using rules from YAML.
+
+    Args:
+        transactions: List of Transaction objects to categorize.
+        rules_file: Optional path to rules YAML.
+
+    Returns:
+        The same list with resolved_type and resolved_category set on each.
+    """
+    rules = load_rules(rules_file)
+    for txn in transactions:
+        categorize(txn, rules)
+    return transactions
+
+
+def get_known_categories(rules_file: Optional[str] = None) -> set[str]:
+    """Return the set of all category names mentioned in expense_overrides.
+
+    Used to detect 'unknown' categories that aren't in the rules.
+    """
+    rules = load_rules(rules_file)
+    known = set()
+
+    # Collect assign_category values from expense_overrides
+    for rule in rules.get("expense_overrides", []):
+        cat = rule.get("assign_category")
+        if cat:
+            known.add(cat)
+
+    # Also collect category patterns used in income/remittance/exclude rules
+    for section in ["income_rules", "investment_rules", "remittance_rules", "exclude_rules"]:
+        for rule in rules.get(section, []):
+            cat = rule.get("assign_category")
+            if cat:
+                known.add(cat)
+
+    return known
