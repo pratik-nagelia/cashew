@@ -71,6 +71,24 @@ def main():
         help="Tab name to write to (default: FY-26-Auto)",
     )
 
+    # reports-tab — build Reports tab with charts
+    rtab_p = sub.add_parser("reports-tab", help="Build Reports tab with charts in Google Sheets")
+    rtab_p.add_argument(
+        "--sheet-id",
+        default=os.environ.get("EXPENSE_SHEET_ID", ""),
+        help="Google Spreadsheet ID (or set EXPENSE_SHEET_ID env var)",
+    )
+    rtab_p.add_argument(
+        "--months",
+        default="1,2,3,4,5,6",
+        help="Comma-separated month numbers (default: 1,2,3,4,5,6)",
+    )
+    rtab_p.add_argument(
+        "--data-tab",
+        default="FY-26-Auto",
+        help="Data tab to reference (default: FY-26-Auto)",
+    )
+
     args = parser.parse_args()
 
     try:
@@ -86,6 +104,8 @@ def main():
             _cmd_categories(args)
         elif args.command == "sync":
             _cmd_sync(args)
+        elif args.command == "reports-tab":
+            _cmd_reports_tab(args)
     except (ConfigError, DataError, MonarchAuthError) as e:
         print(f"Error: {e}", file=sys.stderr)
         sys.exit(1)
@@ -280,6 +300,23 @@ def _cmd_sync(args):
     format_sheet(args.sheet_id, tab_name=args.tab, num_months=len(months))
 
     print(f"\n✅ Done! View your spreadsheet:")
+    print(f"   {url}")
+
+
+def _cmd_reports_tab(args):
+    from .reports_tab import build_reports_tab
+
+    months = [int(m.strip()) for m in args.months.split(",")]
+    print(f"Building Reports tab for months: {', '.join(str(m) for m in months)}")
+    print(f"Referencing data from tab: {args.data_tab}")
+
+    url = build_reports_tab(
+        spreadsheet_id=args.sheet_id,
+        months=months,
+        data_tab=args.data_tab,
+    )
+
+    print(f"\n✅ Reports tab built! View your spreadsheet:")
     print(f"   {url}")
 
 

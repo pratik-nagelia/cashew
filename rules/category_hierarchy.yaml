@@ -1,0 +1,96 @@
+# Category hierarchy — maps subcategories (used in transactions) to parent categories (used in reports)
+# Based on Monarch Money's built-in category groups
+#
+# Structure: parent category → list of subcategories
+# The subcategory names here must match what appears in the transaction data
+# (i.e., the assign_category values from rules.yaml)
+
+hierarchy:
+  # Expense categories
+  Auto & Transport:
+    emoji: "🚗"
+    type: expense
+    subcategories:
+      - Auto
+      - Transport
+
+  Bills & Utilities:
+    emoji: "📱"
+    type: expense
+    subcategories:
+      - Utilities
+
+  Food & Dining:
+    emoji: "🍽️"
+    type: expense
+    subcategories:
+      - Groceries
+      - Dining
+      - Coffee Shops
+
+  Financial:
+    emoji: "🏦"
+    type: expense
+    subcategories:
+      - Insurance
+      - Fees
+
+  Health & Wellness:
+    emoji: "💊"
+    type: expense
+    subcategories:
+      - Health
+
+  Housing:
+    emoji: "🏠"
+    type: expense
+    subcategories:
+      - Housing
+      - Home Improvement
+
+  Shopping:
+    emoji: "🛍️"
+    type: expense
+    subcategories:
+      - Shopping
+      - Clothing
+      - Vape & Nashe
+
+  Education:
+    emoji: "🎓"
+    type: expense
+    subcategories:
+      - Education
+
+  Travel & Lifestyle:
+    emoji: "✈️"
+    type: expense
+    subcategories:
+      - Travel
+      - Entertainment
+      - Personal
+
+  Other:
+    emoji: "❓"
+    type: expense
+    subcategories:
+      - Uncategorized
+      - Refund
+
+  # Income categories
+  Income:
+    emoji: "💰"
+    type: income
+    subcategories:
+      - Paycheck
+      - Interest
+      - Other Income
+      - Business Income
+
+  # Investment categories
+  Investment:
+    emoji: "📈"
+    type: investment
+    subcategories:
+      - India Transfer
+      - Robinhood
