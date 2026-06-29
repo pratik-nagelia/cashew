@@ -87,18 +87,20 @@ def categorize(txn: Transaction, rules: dict) -> Transaction:
         txn.resolved_category = "Hidden"
         return txn
 
-    # Step 2: Check exclude rules
-    rule = _check_rules(txn, rules.get("exclude_rules", []))
-    if rule:
-        txn.resolved_type = TransactionType.EXCLUDE
-        txn.resolved_category = rule.get("note", "Excluded")
-        return txn
-
-    # Step 3: Check investment rules
+    # Step 2: Check investment rules (before excludes — investment transfers
+    # like Robinhood are categorized as "Transfer" in Monarch but are real
+    # outflows we want to track, not internal moves to exclude)
     rule = _check_rules(txn, rules.get("investment_rules", []))
     if rule:
         txn.resolved_type = TransactionType.INVESTMENT
         txn.resolved_category = rule.get("assign_category", txn.category)
+        return txn
+
+    # Step 3: Check exclude rules
+    rule = _check_rules(txn, rules.get("exclude_rules", []))
+    if rule:
+        txn.resolved_type = TransactionType.EXCLUDE
+        txn.resolved_category = rule.get("note", "Excluded")
         return txn
 
     # Step 4: Check remittance rules

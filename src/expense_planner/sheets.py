@@ -90,7 +90,8 @@ CATEGORY_EMOJI = {
     "Business Income": "💼",
     # Investment
     "India Transfer": "🇮🇳",
-    "Robinhood": "📈",
+    "Stocks": "📊",
+    "FDs": "🏦",
 }
 
 
@@ -105,7 +106,7 @@ def _emoji_category(category: str) -> str:
 # Build dropdown lists with emojis
 EXPENSE_CATEGORIES = sorted([
     _emoji_category(c) for c in [
-        "Auto", "Clothing", "Coffee Shops", "Dining", "Education",
+        "Auto", "Clothing", "Coffee Shops", "Dining",
         "Entertainment", "Fees", "Groceries", "Health", "Home Improvement",
         "Housing", "Insurance", "Personal", "Refund", "Shopping",
         "Transport", "Travel", "Uncategorized", "Utilities", "Vape & Nashe",
@@ -114,13 +115,13 @@ EXPENSE_CATEGORIES = sorted([
 
 INCOME_CATEGORIES = sorted([
     _emoji_category(c) for c in [
-        "Paycheck", "Interest", "Other Income", "Business Income",
+        "Paycheck", "Business Income",
     ]
 ])
 
 INVESTMENT_CATEGORIES = sorted([
     _emoji_category(c) for c in [
-        "India Transfer", "Robinhood",
+        "India Transfer", "Stocks", "FDs", "Education",
     ]
 ])
 
@@ -422,7 +423,7 @@ def format_sheet(
                 }
             })
 
-        # Number format for Amount column (currency with parentheses for negatives)
+        # Number format for Amount column (minus sign for negatives)
         requests.append({
             "repeatCell": {
                 "range": {
@@ -436,7 +437,7 @@ def format_sheet(
                     "userEnteredFormat": {
                         "numberFormat": {
                             "type": "NUMBER",
-                            "pattern": "#,##0.00;(#,##0.00)",
+                            "pattern": "#,##0.00;-#,##0.00",
                         },
                     }
                 },

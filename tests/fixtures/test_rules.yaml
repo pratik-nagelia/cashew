@@ -16,6 +16,28 @@ exclude_rules:
     match_mode: contains
     note: "CC payments are not real expenses (already counted on the CC)"
 
+# --- Investments (tracked separately — not expenses) ---
+investment_rules:
+  - match_field: category
+    pattern: "Interest"
+    match_mode: exact
+    assign_category: "FDs"
+
+  - match_field: plaid_name
+    pattern: "Deposit from CD"
+    match_mode: contains
+    assign_category: "FDs"
+
+  - match_field: plaid_name
+    pattern: "SCHWAB BROKERAGE"
+    match_mode: contains
+    assign_category: "Stocks"
+
+  - match_field: category
+    pattern: "Investment"
+    match_mode: exact
+    assign_category: "FDs"
+
 # --- Remittances (real outflows, tracked separately from expenses) ---
 remittance_rules:
   - match_field: category
@@ -28,18 +50,12 @@ income_rules:
   - match_field: category
     pattern: "Paychecks"
     match_mode: exact
-
-  - match_field: category
-    pattern: "Other Income"
-    match_mode: exact
+    assign_category: "Paycheck"
 
   - match_field: category
     pattern: "Business Income"
     match_mode: exact
-
-  - match_field: category
-    pattern: "Interest"
-    match_mode: exact
+    assign_category: "Business Income"
 
 # --- Expense category overrides ---
 # Reclassify Monarch's category into your preferred taxonomy.

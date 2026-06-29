@@ -43,9 +43,9 @@ class TestEndToEndSingleMonth:
         # 4. Generate report
         return generate_report("2026-06", transactions, sample_rules_file)
 
-    def test_income_matches_paychecks_plus_interest(self, pipeline_report):
-        """Two paychecks ($5957.92 each) + interest ($0.06)."""
-        assert pipeline_report.total_income == Decimal("11915.90")
+    def test_income_matches_paychecks(self, pipeline_report):
+        """Two paychecks ($5957.92 each). Interest moved to investment."""
+        assert pipeline_report.total_income == Decimal("11915.84")
 
     def test_expenses_sum(self, pipeline_report):
         """Rent + Groceries + Shopping + Pet Care + Dining."""
@@ -63,7 +63,7 @@ class TestEndToEndSingleMonth:
 
     def test_net_cashflow_formula(self, pipeline_report):
         r = pipeline_report
-        assert r.net_cashflow == r.total_income - r.total_expenses - r.total_remittances
+        assert r.net_cashflow == r.total_income - r.total_expenses - r.total_investments - r.total_remittances
 
     def test_excluded_transactions_stripped(self, pipeline_report):
         for txn in pipeline_report.transactions:
@@ -140,7 +140,7 @@ class TestEndToEndTrend:
     def test_income_trend_values(self, two_month_trend):
         t = two_month_trend
         assert t.income_trend["2026-05"] == Decimal("11000")
-        assert t.income_trend["2026-06"] == Decimal("11915.90")
+        assert t.income_trend["2026-06"] == Decimal("11915.84")
 
     def test_expense_trend_values(self, two_month_trend):
         t = two_month_trend

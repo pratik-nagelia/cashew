@@ -26,7 +26,52 @@ investment_rules:
   - match_field: merchant
     pattern: "Robinhood"
     match_mode: contains
-    assign_category: "Robinhood"
+    assign_category: "Stocks"
+
+  # Interest earned on savings/CDs — not salary income
+  - match_field: category
+    pattern: "Interest"
+    match_mode: exact
+    assign_category: "FDs"
+
+  # CD maturity deposits
+  - match_field: plaid_name
+    pattern: "Deposit from CD"
+    match_mode: contains
+    assign_category: "FDs"
+
+  - match_field: plaid_name
+    pattern: "Certificate of Deposit"
+    match_mode: contains
+    assign_category: "FDs"
+
+  - match_field: merchant
+    pattern: "Certificate of Deposit"
+    match_mode: contains
+    assign_category: "FDs"
+
+  # Schwab brokerage transfers — investment movements, not income
+  - match_field: plaid_name
+    pattern: "SCHWAB BROKERAGE"
+    match_mode: contains
+    assign_category: "Stocks"
+
+  # Catch-all: Monarch's own "Investment" category (e.g. CD deposits)
+  - match_field: category
+    pattern: "Investment"
+    match_mode: exact
+    assign_category: "FDs"
+
+  # Education — tracked as investment (Eva's college), not day-to-day expense
+  - match_field: category
+    pattern: "Education"
+    match_mode: exact
+    assign_category: "Education"
+
+  - match_field: category
+    pattern: "Eva College"
+    match_mode: exact
+    assign_category: "Education"
 
 # --- Remittances (real outflows, tracked separately from expenses) ---
 remittance_rules: []
@@ -47,11 +92,6 @@ income_rules:
     pattern: "Business Income"
     match_mode: exact
     assign_category: "Business Income"
-
-  - match_field: category
-    pattern: "Interest"
-    match_mode: exact
-    assign_category: "Interest"
 
 # --- Expense category overrides ---
 # Reclassify Monarch's category into your preferred taxonomy.
@@ -175,12 +215,6 @@ expense_overrides:
     pattern: "Clothing"
     match_mode: exact
     assign_category: "Clothing"
-
-  # Education
-  - match_field: category
-    pattern: "Eva College"
-    match_mode: exact
-    assign_category: "Education"
 
   # Health
   - match_field: category

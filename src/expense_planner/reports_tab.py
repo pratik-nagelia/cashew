@@ -44,7 +44,7 @@ REPORTS_TAB = "Reports"
 
 # Subcategories we report on (must match what's in the sheet data)
 REPORT_SUBCATEGORIES = [
-    "Auto", "Clothing", "Coffee Shops", "Dining", "Education",
+    "Auto", "Clothing", "Coffee Shops", "Dining",
     "Entertainment", "Fees", "Groceries", "Health", "Home Improvement",
     "Housing", "Insurance", "Personal", "Refund", "Shopping",
     "Transport", "Travel", "Uncategorized", "Utilities", "Vape & Nashe",
@@ -223,8 +223,22 @@ def _build_parent_category_table(
 def _add_charts(spreadsheet, sheet_id: int, months: list[int],
                 summary_start: int, subcat_start: int, parent_start: int,
                 num_subcats: int, num_parents: int):
-    """Add native Google Sheets charts via batch API."""
+    """Add native Google Sheets charts via batch API.
+
+    Charts are placed BELOW all data tables so they never overlap content.
+    Each chart is ~25 rows tall with a 2-row gap between charts.
+    """
     num_months = len(months)
+
+    # Calculate where all data tables end (0-indexed)
+    # parent_start is 0-indexed header row, data rows = num_parents, +1 for total row
+    tables_end_row = parent_start + 1 + num_parents + 1
+    chart_gap = 2        # rows between tables and first chart / between charts
+    chart_height = 25    # rows per chart (~450px at default row height)
+
+    chart1_anchor = tables_end_row + chart_gap
+    chart2_anchor = chart1_anchor + chart_height + chart_gap
+    chart3_anchor = chart2_anchor + chart_height + chart_gap
 
     requests = []
 
@@ -262,7 +276,7 @@ def _add_charts(spreadsheet, sheet_id: int, months: list[int],
                                             "sheetId": sheet_id,
                                             "startRowIndex": summary_start + 1,
                                             "endRowIndex": summary_start + 2,
-                                            "startColumnIndex": 1,
+                                            "startColumnIndex": 0,
                                             "endColumnIndex": 1 + num_months,
                                         }]
                                     }
@@ -277,7 +291,7 @@ def _add_charts(spreadsheet, sheet_id: int, months: list[int],
                                             "sheetId": sheet_id,
                                             "startRowIndex": summary_start + 2,
                                             "endRowIndex": summary_start + 3,
-                                            "startColumnIndex": 1,
+                                            "startColumnIndex": 0,
                                             "endColumnIndex": 1 + num_months,
                                         }]
                                     }
@@ -292,7 +306,7 @@ def _add_charts(spreadsheet, sheet_id: int, months: list[int],
                                             "sheetId": sheet_id,
                                             "startRowIndex": summary_start + 3,
                                             "endRowIndex": summary_start + 4,
-                                            "startColumnIndex": 1,
+                                            "startColumnIndex": 0,
                                             "endColumnIndex": 1 + num_months,
                                         }]
                                     }
@@ -308,11 +322,11 @@ def _add_charts(spreadsheet, sheet_id: int, months: list[int],
                     "overlayPosition": {
                         "anchorCell": {
                             "sheetId": sheet_id,
-                            "rowIndex": summary_start + 5,
+                            "rowIndex": chart1_anchor,
                             "columnIndex": 0,
                         },
                         "widthPixels": 800,
-                        "heightPixels": 400,
+                        "heightPixels": 450,
                     }
                 },
             }
@@ -321,7 +335,6 @@ def _add_charts(spreadsheet, sheet_id: int, months: list[int],
 
     # Chart 2: Category breakdown (stacked bar)
     cat_series = []
-    # Colors for parent categories
     cat_colors = [
         {"red": 0.94, "green": 0.27, "blue": 0.27},  # red
         {"red": 0.13, "green": 0.59, "blue": 0.95},  # blue
@@ -344,7 +357,7 @@ def _add_charts(spreadsheet, sheet_id: int, months: list[int],
                         "sheetId": sheet_id,
                         "startRowIndex": parent_start + 1 + i,
                         "endRowIndex": parent_start + 2 + i,
-                        "startColumnIndex": 1,
+                        "startColumnIndex": 0,
                         "endColumnIndex": 1 + num_months,
                     }]
                 }
@@ -387,7 +400,7 @@ def _add_charts(spreadsheet, sheet_id: int, months: list[int],
                     "overlayPosition": {
                         "anchorCell": {
                             "sheetId": sheet_id,
-                            "rowIndex": summary_start + 28,
+                            "rowIndex": chart2_anchor,
                             "columnIndex": 0,
                         },
                         "widthPixels": 800,
@@ -400,7 +413,6 @@ def _add_charts(spreadsheet, sheet_id: int, months: list[int],
 
     # Chart 3: Top subcategory trends (line chart — top 8 subcategories)
     top_subcats_series = []
-    # Use first 8 subcategories (highest spend typically)
     top_indices = list(range(min(8, num_subcats)))
 
     for idx, i in enumerate(top_indices):
@@ -412,7 +424,7 @@ def _add_charts(spreadsheet, sheet_id: int, months: list[int],
                         "sheetId": sheet_id,
                         "startRowIndex": subcat_start + 1 + i,
                         "endRowIndex": subcat_start + 2 + i,
-                        "startColumnIndex": 1,
+                        "startColumnIndex": 0,
                         "endColumnIndex": 1 + num_months,
                     }]
                 }
@@ -454,7 +466,7 @@ def _add_charts(spreadsheet, sheet_id: int, months: list[int],
                     "overlayPosition": {
                         "anchorCell": {
                             "sheetId": sheet_id,
-                            "rowIndex": summary_start + 53,
+                            "rowIndex": chart3_anchor,
                             "columnIndex": 0,
                         },
                         "widthPixels": 800,
@@ -544,7 +556,7 @@ def _format_reports_tab(spreadsheet, sheet_id: int, num_months: int,
                     "userEnteredFormat": {
                         "numberFormat": {
                             "type": "NUMBER",
-                            "pattern": "#,##0.00;(#,##0.00)",
+                            "pattern": "#,##0.00;-#,##0.00",
                         },
                     }
                 },

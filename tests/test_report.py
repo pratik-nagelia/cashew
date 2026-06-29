@@ -22,7 +22,8 @@ class TestGenerateReport:
     """Test generate_report using the shared fixture data.
 
     Fixture transaction summary (14 parsed, split filtered):
-      INCOME:     txn_001 (+5957.92), txn_002 (+5957.92), txn_003 (+0.06) → total_income = 11915.90
+      INCOME:     txn_001 (+5957.92), txn_002 (+5957.92) → total_income = 11915.84
+      INVESTMENT: txn_003 (+0.06 Interest → FDs)
       EXPENSE:    txn_004 (-3460), txn_005 (-127.43), txn_006 (-54.99),
                   txn_012 (-75.00 Pet Care), txn_015 (-42.50 Dining) → total_expenses = 3759.92
       REMITTANCE: txn_007 (-3000), txn_008 (-2000) → total_remittances = 5000.00
@@ -35,7 +36,7 @@ class TestGenerateReport:
         return generate_report("2026-06", categorized_transactions, sample_rules_file)
 
     def test_total_income(self, report):
-        expected = Decimal("5957.92") + Decimal("5957.92") + Decimal("0.06")
+        expected = Decimal("5957.92") + Decimal("5957.92")
         assert report.total_income == expected
 
     def test_total_expenses(self, report):
@@ -52,15 +53,16 @@ class TestGenerateReport:
         assert report.total_remittances == Decimal("5000.00")
 
     def test_net_cashflow(self, report):
-        """net_cashflow = income - expenses - remittances."""
-        expected = report.total_income - report.total_expenses - report.total_remittances
+        """net_cashflow = income - expenses - investments - remittances."""
+        expected = report.total_income - report.total_expenses - report.total_investments - report.total_remittances
         assert report.net_cashflow == expected
 
     def test_net_cashflow_value(self, report):
-        income = Decimal("11915.90")
+        income = Decimal("11915.84")
         expenses = Decimal("3759.92")
+        investments = Decimal("-0.06")  # Interest $0.06 inflow → -amount = -0.06
         remittances = Decimal("5000.00")
-        assert report.net_cashflow == income - expenses - remittances
+        assert report.net_cashflow == income - expenses - investments - remittances
 
     def test_month_label(self, report):
         assert report.month == "2026-06"
@@ -129,12 +131,14 @@ class TestIncomeSources:
 
     def test_income_sources_present(self, report):
         names = [s.name for s in report.income_sources]
-        assert "Meta" in names
+        assert "Paycheck" in names
 
-    def test_meta_income_correct(self, report):
-        meta = [s for s in report.income_sources if s.name == "Meta"][0]
-        assert meta.amount == Decimal("5957.92") * 2
-        assert meta.count == 2
+    def test_paycheck_income_correct(self, report):
+        paycheck = [s for s in report.income_sources if s.name == "Paycheck"][0]
+        # _aggregate_by_category uses -t.amount; income amounts are positive,
+        # so the aggregated value is negative
+        assert paycheck.amount == -(Decimal("5957.92") * 2)
+        assert paycheck.count == 2
 
 
 # ---------------------------------------------------------------------------

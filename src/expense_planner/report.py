@@ -42,6 +42,9 @@ def generate_report(
     for txn in transactions:
         if txn.resolved_type == TransactionType.EXCLUDE:
             continue
+        # Filter out sub-dollar transactions to match sheet behavior
+        if abs(txn.amount) < Decimal("1.00"):
+            continue
         kept.append(txn)
         if txn.resolved_type == TransactionType.INCOME:
             income_txns.append(txn)

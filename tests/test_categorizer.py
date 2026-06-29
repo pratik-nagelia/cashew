@@ -192,19 +192,21 @@ class TestCategorize:
         txn = _make_txn(category="Paychecks", merchant="Meta", amount=Decimal("5957.92"))
         result = categorize(txn, rules)
         assert result.resolved_type == TransactionType.INCOME
-        # Income uses merchant as resolved_category
-        assert result.resolved_category == "Meta"
+        assert result.resolved_category == "Paycheck"
 
-    def test_interest_income(self, rules):
+    def test_interest_investment(self, rules):
+        """Interest is now routed to investment FDs, not income."""
         txn = _make_txn(category="Interest", merchant="Marcus", amount=Decimal("0.06"))
         result = categorize(txn, rules)
-        assert result.resolved_type == TransactionType.INCOME
-        assert result.resolved_category == "Marcus"
+        assert result.resolved_type == TransactionType.INVESTMENT
+        assert result.resolved_category == "FDs"
 
-    def test_other_income(self, rules):
+    def test_other_income_unmatched(self, rules):
+        """Other Income is no longer in income_rules — falls through to expense default."""
         txn = _make_txn(category="Other Income", merchant="Side Gig")
         result = categorize(txn, rules)
-        assert result.resolved_type == TransactionType.INCOME
+        # Without an income rule, it falls to default → expense with keep_original
+        assert result.resolved_type == TransactionType.EXPENSE
 
     def test_business_income(self, rules):
         txn = _make_txn(category="Business Income", merchant="Consulting LLC")
@@ -311,9 +313,9 @@ class TestCategorizeAll:
         assert len(excluded) == 4
 
     def test_fixture_income_count(self, categorized_transactions):
-        """Fixture has 2 Paychecks + 1 Interest = 3 income."""
+        """Fixture has 2 Paychecks = 2 income (Interest moved to investment)."""
         income = [t for t in categorized_transactions if t.resolved_type == TransactionType.INCOME]
-        assert len(income) == 3
+        assert len(income) == 2
 
     def test_fixture_remittance_count(self, categorized_transactions):
         """Fixture has 2 India Transfer = 2 remittances."""

@@ -56,12 +56,6 @@ hierarchy:
       - Clothing
       - Vape & Nashe
 
-  Education:
-    emoji: "🎓"
-    type: expense
-    subcategories:
-      - Education
-
   Travel & Lifestyle:
     emoji: "✈️"
     type: expense
@@ -83,8 +77,6 @@ hierarchy:
     type: income
     subcategories:
       - Paycheck
-      - Interest
-      - Other Income
       - Business Income
 
   # Investment categories
@@ -93,4 +85,6 @@ hierarchy:
     type: investment
     subcategories:
       - India Transfer
-      - Robinhood
+      - Stocks
+      - FDs
+      - Education
