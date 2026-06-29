@@ -94,7 +94,3 @@ src/expense_planner/
 pip install -e ".[dev]"
 pytest tests/ -v
 ```
-
-## License
-
-MIT
