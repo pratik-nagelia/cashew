@@ -48,17 +48,22 @@ MONTH_NAMES = [
     "July", "August", "September", "October", "November", "December",
 ]
 
-# Fixed row regions (1-indexed)
+# Fixed row regions (1-indexed).
+# Section order (top to bottom): Summary, Expenses, Investment, Income.
+# Investment starts at row 171 (right under expenses) with 20 slots; Income
+# follows directly below, so investment reads first and income is its own
+# block below. If a month ever exceeds a section's capacity, sync raises
+# instead of silently dropping transactions (see _fit_to_region).
 SUMMARY_START = 1     # Row 1-5: header + summary
-EXPENSE_START = 6     # Row 6-170: expenses
+EXPENSE_START = 6     # Row 6-170: expenses (165 slots)
 EXPENSE_END = 170
-INCOME_LABEL = 171    # Row 171: separator
-INCOME_START = 172    # Row 172-185: income
-INCOME_END = 185
-INVEST_LABEL = 186    # Row 186: separator
-INVEST_START = 187    # Row 187-200: investments
-INVEST_END = 200
-TOTAL_ROWS = 200
+INVEST_LABEL = 171    # Row 171: separator — investments start here
+INVEST_START = 172    # Row 172-191: investments (20 slots)
+INVEST_END = 191
+INCOME_LABEL = 192    # Row 192: separator
+INCOME_START = 193    # Row 193-217: income (25 slots)
+INCOME_END = 217
+TOTAL_ROWS = 217
 
 # Emoji map for categories — matches Monarch's visual style
 CATEGORY_EMOJI = {
@@ -218,6 +223,31 @@ def _txn_to_row(txn: Transaction, is_expense: bool = True) -> list[str]:
     ]
 
 
+class SectionOverflowError(Exception):
+    """Raised when a month has more transactions than a section can hold.
+
+    Guards against silently dropping transactions (which corrupts the
+    monthly SUM totals). The fix is to grow the section's row region.
+    """
+
+
+def _fit_to_region(rows: list[list[str]], capacity: int, section: str, month: str) -> list[list[str]]:
+    """Pad `rows` with blanks to exactly `capacity`, or raise if too many.
+
+    NEVER silently truncates — dropping transactions produces wrong totals.
+    """
+    if len(rows) > capacity:
+        raise SectionOverflowError(
+            f"{month}: {len(rows)} {section} transactions exceed the "
+            f"{capacity}-row section. Increase the {section} region in "
+            f"sheets.py (EXPENSE/INCOME/INVEST_START/END) and re-sync."
+        )
+    padded = list(rows)
+    while len(padded) < capacity:
+        padded.append(["", "", "", ""])
+    return padded
+
+
 def _build_month_cells(
     report: MonthlyReport,
     transactions: list[Transaction],
@@ -252,11 +282,9 @@ def _build_month_cells(
         key=lambda t: t.date,
     ))
     exp_rows = [_txn_to_row(t, is_expense=True) for t in expense_txns]
-    # Pad to fill the fixed region (empty rows)
-    while len(exp_rows) < (EXPENSE_END - EXPENSE_START + 1):
-        exp_rows.append(["", "", "", ""])
-    # Truncate if somehow more than the region
-    exp_rows = exp_rows[:EXPENSE_END - EXPENSE_START + 1]
+    exp_rows = _fit_to_region(
+        exp_rows, EXPENSE_END - EXPENSE_START + 1, "expense", report.month
+    )
     updates.append((f"{col_a}{EXPENSE_START}:{col_d}{EXPENSE_END}", exp_rows))
 
     # --- Income separator + transactions (rows 171-185) ---
@@ -268,9 +296,9 @@ def _build_month_cells(
     updates.append((f"{col_a}{INCOME_LABEL}:{col_d}{INCOME_LABEL}", separator_and_income))
 
     inc_rows = [_txn_to_row(t, is_expense=False) for t in income_txns]
-    while len(inc_rows) < (INCOME_END - INCOME_START + 1):
-        inc_rows.append(["", "", "", ""])
-    inc_rows = inc_rows[:INCOME_END - INCOME_START + 1]
+    inc_rows = _fit_to_region(
+        inc_rows, INCOME_END - INCOME_START + 1, "income", report.month
+    )
     updates.append((f"{col_a}{INCOME_START}:{col_d}{INCOME_END}", inc_rows))
 
     # --- Investment separator + transactions (rows 186-200) ---
@@ -281,14 +309,11 @@ def _build_month_cells(
     separator_and_invest = [["", "--- Investments ---", "", f"=SUM({amt_col}{INVEST_START}:{amt_col}{INVEST_END})"]]
     updates.append((f"{col_a}{INVEST_LABEL}:{col_d}{INVEST_LABEL}", separator_and_invest))
 
-    inv_rows = [_txn_to_row(t, is_expense=False) for t in invest_txns]
     # Investment outflows: use expense-style sign logic
-    inv_rows = []
-    for t in invest_txns:
-        inv_rows.append(_txn_to_row(t, is_expense=True))
-    while len(inv_rows) < (INVEST_END - INVEST_START + 1):
-        inv_rows.append(["", "", "", ""])
-    inv_rows = inv_rows[:INVEST_END - INVEST_START + 1]
+    inv_rows = [_txn_to_row(t, is_expense=True) for t in invest_txns]
+    inv_rows = _fit_to_region(
+        inv_rows, INVEST_END - INVEST_START + 1, "investment", report.month
+    )
     updates.append((f"{col_a}{INVEST_START}:{col_d}{INVEST_END}", inv_rows))
 
     return updates

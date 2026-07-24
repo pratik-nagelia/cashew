@@ -113,13 +113,19 @@ def _build_monthly_summary_formulas(months: list[int]) -> list[list[str]]:
     return rows
 
 
-def _build_subcategory_table(months: list[int], subcategories: list[str]) -> list[list[str]]:
+def _build_subcategory_table(
+    months: list[int], subcategories: list[str], start_row: int
+) -> list[list[str]]:
     """Build subcategory breakdown table with SUMIFS formulas.
 
     Each cell uses SUMIFS to sum amounts in FY-26-Auto where the category
     column matches the subcategory name (with emoji prefix).
 
     Returns rows starting with a header, then one row per subcategory.
+
+    Args:
+        start_row: 1-indexed sheet row where this table's header is written.
+            Needed so the TOTAL row can reference the correct sheet rows.
     """
     from .sheets import CATEGORY_EMOJI, _emoji_category
 
@@ -149,14 +155,15 @@ def _build_subcategory_table(months: list[int], subcategories: list[str]) -> lis
             row.append(formula)
         rows.append(row)
 
-    # Total row
+    # Total row — reference the ACTUAL sheet rows for this table.
+    # Data rows run from the row after the header (start_row + 1) through
+    # start_row + len(subcategories).
     total_row = ["TOTAL"]
+    first_data_row = start_row + 1
+    last_data_row = start_row + len(subcategories)
     for i, m in enumerate(months):
         col = _col_letter(i + 1)
-        # Sum from row 2 (first subcat) to row 1+len(subcategories)
-        start_row = len(rows) - len(subcategories) + 1
-        end_row = len(rows)
-        total_row.append(f"=SUM({col}{start_row}:{col}{end_row})")
+        total_row.append(f"=SUM({col}{first_data_row}:{col}{last_data_row})")
     rows.append(total_row)
 
     return rows
@@ -166,10 +173,17 @@ def _build_parent_category_table(
     months: list[int],
     subcategories: list[str],
     subcat_table_start_row: int,
+    parent_table_start_row: int,
 ) -> list[list[str]]:
     """Build parent category table that aggregates subcategory rows.
 
     Uses SUM formulas referencing the subcategory table rows.
+
+    Args:
+        subcat_table_start_row: 1-indexed header row of the subcategory table
+            (used to reference each parent's member subcategory rows).
+        parent_table_start_row: 1-indexed header row of THIS table (used so the
+            TOTAL row references the correct sheet rows).
     """
     hierarchy = load_hierarchy()
     sub_to_parent = build_subcategory_to_parent_map(hierarchy)
@@ -207,22 +221,67 @@ def _build_parent_category_table(
                 row.append("0")
         rows.append(row)
 
-    # Total row
+    # Total row — reference the ACTUAL sheet rows for this table.
     total_row = ["TOTAL"]
+    first_data_row = parent_table_start_row + 1
+    last_data_row = parent_table_start_row + len(parents)
     for i, m in enumerate(months):
         col = _col_letter(i + 1)
-        start = len(rows) - len(parents) + 1
-        end = len(rows)
-        # Offset by the table start position
-        total_row.append(f"=SUM({col}{start}:{col}{end})")
+        total_row.append(f"=SUM({col}{first_data_row}:{col}{last_data_row})")
     rows.append(total_row)
 
     return rows
 
 
+def _read_top_subcategory_indices(
+    ws, subcat_start_row: int, num_subcats: int, num_months: int, top_n: int = 10
+) -> list[int]:
+    """Rank subcategories by total amount and return the top-N row indices.
+
+    Reads the computed subcategory table values back from the sheet and sums
+    each subcategory across all months, then returns the 0-based indices
+    (into REPORT_SUBCATEGORIES / the table's data rows) of the biggest ones,
+    highest first. Falls back to the first N in order if the read fails.
+    """
+    first_data_row = subcat_start_row + 1
+    last_data_row = subcat_start_row + num_subcats
+    last_col = _col_letter(num_months)  # month columns are B..(1+num_months)
+    rng = f"B{first_data_row}:{last_col}{last_data_row}"
+    try:
+        values = ws.get(rng, value_render_option="UNFORMATTED_VALUE")
+    except Exception:
+        return list(range(min(top_n, num_subcats)))
+
+    return _rank_top_indices(values, num_subcats, top_n)
+
+
+def _rank_top_indices(values: list[list], num_subcats: int, top_n: int) -> list[int]:
+    """Return the 0-based indices of the top-N rows by summed amount.
+
+    Highest total first; ties keep their original (input) order. `values` is a
+    grid of one row per subcategory; non-numeric cells are ignored.
+    """
+    totals = []
+    for i in range(num_subcats):
+        row = values[i] if i < len(values) else []
+        total = 0.0
+        for cell in row:
+            try:
+                total += float(cell)
+            except (TypeError, ValueError):
+                pass
+        totals.append((i, total))
+
+    # sorted() is stable, so equal totals keep original order after we
+    # negate for descending via reverse=True on the value key.
+    ranked = sorted(totals, key=lambda t: t[1], reverse=True)
+    return [idx for idx, _ in ranked[:top_n]]
+
+
 def _add_charts(spreadsheet, sheet_id: int, months: list[int],
                 summary_start: int, subcat_start: int, parent_start: int,
-                num_subcats: int, num_parents: int):
+                num_subcats: int, num_parents: int,
+                top_subcat_indices: list[int] = None):
     """Add native Google Sheets charts via batch API.
 
     Charts are placed BELOW all data tables so they never overlap content.
@@ -411,9 +470,12 @@ def _add_charts(spreadsheet, sheet_id: int, months: list[int],
         }
     })
 
-    # Chart 3: Top subcategory trends (line chart — top 8 subcategories)
+    # Chart 3: Top subcategory trends (line chart — top N by total amount)
     top_subcats_series = []
-    top_indices = list(range(min(8, num_subcats)))
+    if top_subcat_indices is None:
+        top_indices = list(range(min(10, num_subcats)))
+    else:
+        top_indices = top_subcat_indices
 
     for idx, i in enumerate(top_indices):
         color = cat_colors[idx % len(cat_colors)]
@@ -437,7 +499,7 @@ def _add_charts(spreadsheet, sheet_id: int, months: list[int],
         "addChart": {
             "chart": {
                 "spec": {
-                    "title": "📋 Subcategory Trends (Top 8)",
+                    "title": f"📋 Subcategory Trends (Top {len(top_indices)})",
                     "basicChart": {
                         "chartType": "LINE",
                         "legendPosition": "RIGHT_LEGEND",
@@ -656,7 +718,7 @@ def build_reports_tab(
     # === Section 2: Subcategory Breakdown (starts after summary + gap) ===
     subcat_gap = 2
     subcat_start_row = summary_start_row + len(summary_rows) + subcat_gap
-    subcat_rows = _build_subcategory_table(months, REPORT_SUBCATEGORIES)
+    subcat_rows = _build_subcategory_table(months, REPORT_SUBCATEGORIES, subcat_start_row)
     ws.update(
         f"A{subcat_start_row}:{_col_letter(len(months))}{subcat_start_row + len(subcat_rows) - 1}",
         subcat_rows,
@@ -667,7 +729,7 @@ def build_reports_tab(
     parent_gap = 2
     parent_start_row = subcat_start_row + len(subcat_rows) + parent_gap
     parent_rows = _build_parent_category_table(
-        months, REPORT_SUBCATEGORIES, subcat_start_row
+        months, REPORT_SUBCATEGORIES, subcat_start_row, parent_start_row
     )
     ws.update(
         f"A{parent_start_row}:{_col_letter(len(months))}{parent_start_row + len(parent_rows) - 1}",
@@ -698,6 +760,12 @@ def build_reports_tab(
                     "requests": [{"deleteEmbeddedObject": {"objectId": chart["chartId"]}}]
                 })
 
+    # Rank subcategories by total amount so the trends chart shows the
+    # real top 10 (not just the first 10 alphabetically).
+    top_subcat_indices = _read_top_subcategory_indices(
+        ws, subcat_start_row, len(REPORT_SUBCATEGORIES), len(months), top_n=10
+    )
+
     _add_charts(
         spreadsheet, sheet_id, months,
         summary_start=summary_start_row - 1,   # 0-indexed for chart API
@@ -705,6 +773,7 @@ def build_reports_tab(
         parent_start=parent_start_row - 1,      # 0-indexed (header row)
         num_subcats=len(REPORT_SUBCATEGORIES),
         num_parents=num_parents,
+        top_subcat_indices=top_subcat_indices,
     )
 
     return f"https://docs.google.com/spreadsheets/d/{spreadsheet_id}"
