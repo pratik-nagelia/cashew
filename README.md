@@ -20,6 +20,20 @@ python -m expense_planner sync                     # syncs all cached months to 
 python -m expense_planner report --month 2026-07   # CLI report
 ```
 
+### Credentials on a fresh machine (maintainer shortcut)
+
+This repo carries no keys. If you have the private `nagelia-dev-setup` repo, skip
+the manual `.env` step entirely — it injects everything from GCP Secret Manager:
+
+```bash
+git clone <nagelia-dev-setup> && cd nagelia-dev-setup
+./bootstrap.sh                            # once per machine: gcloud auth
+./install.sh cashew --path ~/dev/cashew   # writes .env + .secrets/, sets paths
+```
+
+Everyone else fills in `.env` by hand and drops a Desktop OAuth client at
+`.secrets/google-credentials.json`.
+
 ## Commands
 
 | Command | Description |
@@ -48,8 +62,12 @@ SSL_CERT_FILE=/path/to/certifi/cacert.pem  # macOS Python 3.12 fix
 
 1. Create a Desktop OAuth client at [Google Cloud Console](https://console.cloud.google.com/apis/credentials)
 2. Enable Google Sheets API
-3. Download credentials JSON to `../google-credentials.json` (one level above project)
-4. First run opens browser for OAuth — subsequent runs reuse the token
+3. Put the credentials JSON where Cashew looks. Resolution order:
+   1. `GOOGLE_CREDENTIALS_FILE` in `.env`
+   2. `./.secrets/google-credentials.json` (gitignored — the recommended spot)
+   3. `../google-credentials.json`, one level above the repo (legacy)
+4. First run opens browser for OAuth — subsequent runs reuse the token.
+   The token is written next to the credentials file, or at `GOOGLE_TOKEN_FILE`.
 
 ### Categorization Rules (`rules/rules.yaml`)
 

@@ -4,6 +4,7 @@ __pycache__/
 .venv/
 .session
 .env
+.secrets/
 *.egg-info/
 dist/
 build/
