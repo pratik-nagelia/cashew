@@ -16,25 +16,23 @@ SAFETY: This module ONLY creates/updates the 'Reports' tab.
 It never touches any other tab in the spreadsheet.
 """
 
+from typing import Optional
+
 from .hierarchy import (
+    build_subcategory_emoji_map,
     build_subcategory_to_parent_map,
     get_expense_parents,
     get_parent_emoji,
+    get_subcategories_by_type,
     load_hierarchy,
 )
 from .sheets import (
-    EXPENSE_CATEGORIES,
     EXPENSE_END,
     EXPENSE_START,
-    INCOME_CATEGORIES,
-    INCOME_END,
-    INCOME_START,
-    INVEST_END,
-    INVEST_START,
-    INVESTMENT_CATEGORIES,
     MONTH_NAMES,
     _authenticate,
     _col_letter,
+    _emoji_category,
     _month_col_offset,
 )
 
@@ -42,14 +40,14 @@ from .sheets import (
 DATA_TAB = "FY-26-Auto"
 REPORTS_TAB = "Reports"
 
-# Subcategories we report on (must match what's in the sheet data)
-REPORT_SUBCATEGORIES = [
-    "Auto", "Clothing", "Coffee Shops", "Dining",
-    "Entertainment", "Fees", "Groceries", "Health", "Home Improvement",
-    "Housing", "Insurance", "Personal", "Refund", "Shopping",
-    "Student Loans", "Transport", "Travel", "Uncategorized", "Utilities",
-    "Vape & Nashe",
-]
+
+def report_subcategories(hierarchy: Optional[dict] = None) -> list[str]:
+    """Subcategories the Reports tab has a row for: every expense parent's, in YAML order.
+
+    Income, investment and exclude parents get no row (their totals are in the
+    monthly summary, or they are not spend at all).
+    """
+    return get_subcategories_by_type("expense", hierarchy)
 
 
 def _get_or_create_tab(spreadsheet, tab_name, rows=300, cols=20):
@@ -115,7 +113,10 @@ def _build_monthly_summary_formulas(months: list[int]) -> list[list[str]]:
 
 
 def _build_subcategory_table(
-    months: list[int], subcategories: list[str], start_row: int
+    months: list[int],
+    subcategories: list[str],
+    start_row: int,
+    emoji_map: Optional[dict[str, str]] = None,
 ) -> list[list[str]]:
     """Build subcategory breakdown table with SUMIFS formulas.
 
@@ -127,9 +128,9 @@ def _build_subcategory_table(
     Args:
         start_row: 1-indexed sheet row where this table's header is written.
             Needed so the TOTAL row can reference the correct sheet rows.
+        emoji_map: {subcategory: emoji}; defaults to the real hierarchy's. Must
+            match what sync wrote into the Category column or SUMIFS finds 0.
     """
-    from .sheets import CATEGORY_EMOJI, _emoji_category
-
     rows = []
 
     # Header
@@ -139,8 +140,8 @@ def _build_subcategory_table(
     rows.append(header)
 
     for subcat in subcategories:
-        row = [f"{CATEGORY_EMOJI.get(subcat, '')} {subcat}"]
-        emoji_name = _emoji_category(subcat)
+        emoji_name = _emoji_category(subcat, emoji_map)
+        row = [emoji_name]
 
         for m in months:
             col_start = _month_col_offset(m)
@@ -175,6 +176,7 @@ def _build_parent_category_table(
     subcategories: list[str],
     subcat_table_start_row: int,
     parent_table_start_row: int,
+    hierarchy: Optional[dict] = None,
 ) -> list[list[str]]:
     """Build parent category table that aggregates subcategory rows.
 
@@ -185,8 +187,12 @@ def _build_parent_category_table(
             (used to reference each parent's member subcategory rows).
         parent_table_start_row: 1-indexed header row of THIS table (used so the
             TOTAL row references the correct sheet rows).
+        hierarchy: defaults to the real category_hierarchy.yaml. One row per
+            expense parent, in YAML order; a subcategory the hierarchy doesn't
+            know is summed into "Other".
     """
-    hierarchy = load_hierarchy()
+    if hierarchy is None:
+        hierarchy = load_hierarchy()
     sub_to_parent = build_subcategory_to_parent_map(hierarchy)
     parents = get_expense_parents(hierarchy)
 
@@ -241,7 +247,7 @@ def _read_top_subcategory_indices(
 
     Reads the computed subcategory table values back from the sheet and sums
     each subcategory across all months, then returns the 0-based indices
-    (into REPORT_SUBCATEGORIES / the table's data rows) of the biggest ones,
+    (into report_subcategories() / the table's data rows) of the biggest ones,
     highest first. Falls back to the first N in order if the read fails.
     """
     first_data_row = subcat_start_row + 1
@@ -692,6 +698,13 @@ def build_reports_tab(
     if months is None:
         months = list(range(1, 7))
 
+    # Read the category list before touching the sheet, so a bad YAML fails
+    # without clearing the Reports tab.
+    hierarchy = load_hierarchy()
+    subcategories = report_subcategories(hierarchy)
+    emoji_map = build_subcategory_emoji_map(hierarchy)
+    num_parents = len(get_expense_parents(hierarchy))
+
     gc = _authenticate()
     spreadsheet = gc.open_by_key(spreadsheet_id)
 
@@ -719,7 +732,7 @@ def build_reports_tab(
     # === Section 2: Subcategory Breakdown (starts after summary + gap) ===
     subcat_gap = 2
     subcat_start_row = summary_start_row + len(summary_rows) + subcat_gap
-    subcat_rows = _build_subcategory_table(months, REPORT_SUBCATEGORIES, subcat_start_row)
+    subcat_rows = _build_subcategory_table(months, subcategories, subcat_start_row, emoji_map)
     ws.update(
         f"A{subcat_start_row}:{_col_letter(len(months))}{subcat_start_row + len(subcat_rows) - 1}",
         subcat_rows,
@@ -730,7 +743,7 @@ def build_reports_tab(
     parent_gap = 2
     parent_start_row = subcat_start_row + len(subcat_rows) + parent_gap
     parent_rows = _build_parent_category_table(
-        months, REPORT_SUBCATEGORIES, subcat_start_row, parent_start_row
+        months, subcategories, subcat_start_row, parent_start_row, hierarchy
     )
     ws.update(
         f"A{parent_start_row}:{_col_letter(len(months))}{parent_start_row + len(parent_rows) - 1}",
@@ -739,15 +752,12 @@ def build_reports_tab(
     )
 
     # === Apply formatting ===
-    hierarchy = load_hierarchy()
-    num_parents = len(get_expense_parents(hierarchy))
-
     _format_reports_tab(
         spreadsheet, sheet_id, len(months),
         summary_start=summary_start_row,  # 1-indexed for formatting (convert to 0-idx inside)
         subcat_start=subcat_start_row,
         parent_start=parent_start_row,
-        num_subcats=len(REPORT_SUBCATEGORIES),
+        num_subcats=len(subcategories),
         num_parents=num_parents,
     )
 
@@ -762,9 +772,9 @@ def build_reports_tab(
                 })
 
     # Rank subcategories by total amount so the trends chart shows the
-    # real top 10 (not just the first 10 alphabetically).
+    # real top 10 (not just the first 10 in table order).
     top_subcat_indices = _read_top_subcategory_indices(
-        ws, subcat_start_row, len(REPORT_SUBCATEGORIES), len(months), top_n=10
+        ws, subcat_start_row, len(subcategories), len(months), top_n=10
     )
 
     _add_charts(
@@ -772,7 +782,7 @@ def build_reports_tab(
         summary_start=summary_start_row - 1,   # 0-indexed for chart API
         subcat_start=subcat_start_row - 1,      # 0-indexed (header row)
         parent_start=parent_start_row - 1,      # 0-indexed (header row)
-        num_subcats=len(REPORT_SUBCATEGORIES),
+        num_subcats=len(subcategories),
         num_parents=num_parents,
         top_subcat_indices=top_subcat_indices,
     )

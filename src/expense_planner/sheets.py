@@ -9,11 +9,17 @@ Layout per month (5 columns: Date | Category | Name | Amount | spacer):
   Row 3:  Expenses =SUM(expense rows)
   Row 4:  Investment =SUM(investment rows)
   Row 5:  Diff =Income - Expenses - Investment (should be ~0 if all money accounted for)
-  Row 6–170:  Expense transactions (fixed region, sorted by date)
-  Row 171: "--- Income ---" separator
-  Row 172–185: Income transactions (fixed region)
-  Row 186: "--- Investments ---" separator
-  Row 187–200: Investment transactions (fixed region)
+  Rows 6-305:   Expense transactions (fixed region, sorted by date)
+  Row 306:      "--- Investments ---" separator
+  Rows 307-326: Investment transactions (fixed region)
+  Row 327:      "--- Income ---" separator
+  Rows 328-352: Income transactions (fixed region)
+  (The *_START / *_END constants below are the source of truth.)
+
+Categories come from rules/category_hierarchy.yaml: each Category cell is
+"<emoji> <subcategory>" (the subcategory's emoji, else its parent's), and each
+section's dropdown lists the subcategories of the expense / investment / income
+parents in YAML order. Exclude parents (Transfers) have no section.
 
 Amounts:
   Expenses: positive = outflow, negative = refund (subtracts from total)
@@ -25,13 +31,16 @@ Transactions < $1 are filtered out.
 
 import os
 from decimal import Decimal
+from functools import lru_cache
 from pathlib import Path
+from typing import Optional
 
 import gspread
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 
+from .hierarchy import build_subcategory_emoji_map, get_subcategories_by_type, load_hierarchy
 from .models import MonthlyReport, Transaction, TransactionType
 
 SCOPES = [
@@ -91,73 +100,49 @@ INCOME_START = 328    # Row 328-352: income (25 slots)
 INCOME_END = 352
 TOTAL_ROWS = 352
 
-# Emoji map for categories — matches Monarch's visual style
-CATEGORY_EMOJI = {
-    # Expenses
-    "Auto": "🚗",
-    "Clothing": "👔",
-    "Coffee Shops": "☕",
-    "Dining": "🍽️",
-    "Education": "🎓",
-    "Entertainment": "🎭",
-    "Fees": "🏦",
-    "Groceries": "🛒",
-    "Health": "💊",
-    "Home Improvement": "🔨",
-    "Housing": "🏠",
-    "Insurance": "🛡️",
-    "Personal": "👤",
-    "Refund": "↩️",
-    "Shopping": "🛍️",
-    "Transport": "🚕",
-    "Travel": "✈️",
-    "Uncategorized": "❓",
-    "Utilities": "📱",
-    "Vape & Nashe": "🌿",
-    # Income
-    "Paycheck": "💰",
-    "Interest": "🏦",
-    "Other Income": "💵",
-    "Business Income": "💼",
-    # Investment
-    "India Transfer": "🇮🇳",
-    "Stocks": "📊",
-    "FDs": "🏦",
-}
+# Sheet sections that get a category dropdown, by hierarchy parent type.
+# "exclude" parents (Transfers) never reach the sheet, so they get none.
+DROPDOWN_TYPES = ("expense", "income", "investment")
 
 
-def _emoji_category(category: str) -> str:
-    """Prepend emoji to category name for display."""
-    emoji = CATEGORY_EMOJI.get(category, "")
+@lru_cache(maxsize=1)
+def _default_emoji_map() -> dict[str, str]:
+    """Subcategory emoji from the real category_hierarchy.yaml, read once per process."""
+    return build_subcategory_emoji_map()
+
+
+def _emoji_category(category: str, emoji_map: Optional[dict[str, str]] = None) -> str:
+    """Prepend the category's emoji for display ("🛒 Groceries").
+
+    A name with no emoji (e.g. a Monarch category the rules pass through that
+    isn't in the hierarchy) stays plain. emoji_map defaults to the real YAML's.
+    """
+    if emoji_map is None:
+        emoji_map = _default_emoji_map()
+    emoji = emoji_map.get(category, "")
     if emoji:
         return f"{emoji} {category}"
     return category
 
 
-# Build dropdown lists with emojis
-EXPENSE_CATEGORIES = sorted([
-    _emoji_category(c) for c in [
-        "Auto", "Clothing", "Coffee Shops", "Dining",
-        "Entertainment", "Fees", "Groceries", "Health", "Home Improvement",
-        "Housing", "Insurance", "Personal", "Refund", "Shopping",
-        "Student Loans", "Transport", "Travel", "Uncategorized", "Utilities",
-        "Vape & Nashe",
-    ]
-])
+def dropdown_categories(
+    hierarchy: Optional[dict] = None, emoji_map: Optional[dict[str, str]] = None
+) -> dict[str, list[str]]:
+    """Emoji-prefixed dropdown values per sheet section, from category_hierarchy.yaml.
 
-INCOME_CATEGORIES = sorted([
-    _emoji_category(c) for c in [
-        "Paycheck", "Business Income",
-    ]
-])
+    Returns {"expense": [...], "income": [...], "investment": [...]}, each in
+    YAML order (parent order, then subcategory order). Exclude-type parents are
+    left out. Both arguments default to the real hierarchy file.
+    """
+    if hierarchy is None:
+        hierarchy = load_hierarchy()
+    if emoji_map is None:
+        emoji_map = build_subcategory_emoji_map(hierarchy)
+    return {
+        section: [_emoji_category(sub, emoji_map) for sub in get_subcategories_by_type(section, hierarchy)]
+        for section in DROPDOWN_TYPES
+    }
 
-INVESTMENT_CATEGORIES = sorted([
-    _emoji_category(c) for c in [
-        "India Transfer", "Stocks", "FDs", "Education",
-    ]
-])
-
-ALL_CATEGORIES = sorted(set(EXPENSE_CATEGORIES + INCOME_CATEGORIES + INVESTMENT_CATEGORIES))
 
 MIN_AMOUNT = Decimal("1.00")  # Filter out transactions < $1
 
@@ -355,6 +340,7 @@ def sync_to_sheet(
     tab_name: str = "FY-26-Auto",
 ) -> str:
     """Sync multiple months to the Google Sheet with fixed-row layout."""
+    _default_emoji_map()  # read the category YAML now: a bad file fails before ws.clear()
     gc = _authenticate()
     spreadsheet = gc.open_by_key(spreadsheet_id)
     ws = _ensure_tab(spreadsheet, tab_name)
@@ -394,6 +380,7 @@ def format_sheet(
     sheet_id = ws.id
 
     requests = []
+    dropdowns = dropdown_categories()
 
     for month_idx in range(num_months):
         col_start = month_idx * 5
@@ -518,9 +505,9 @@ def format_sheet(
         # Category dropdowns — section-specific lists
         # Expenses get expense categories, income gets income, investments get investment
         for start_row, end_row, cat_list in [
-            (EXPENSE_START - 1, EXPENSE_END, EXPENSE_CATEGORIES),
-            (INCOME_START - 1, INCOME_END, INCOME_CATEGORIES),
-            (INVEST_START - 1, INVEST_END, INVESTMENT_CATEGORIES),
+            (EXPENSE_START - 1, EXPENSE_END, dropdowns["expense"]),
+            (INCOME_START - 1, INCOME_END, dropdowns["income"]),
+            (INVEST_START - 1, INVEST_END, dropdowns["investment"]),
         ]:
             requests.append({
                 "setDataValidation": {

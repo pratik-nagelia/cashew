@@ -55,14 +55,33 @@ def build_subcategory_to_parent_map(hierarchy: Optional[dict] = None) -> dict[st
 
 
 def get_expense_parents(hierarchy: Optional[dict] = None) -> list[str]:
-    """Return parent category names where type=expense, sorted."""
+    """Return parent category names where type=expense, in YAML order.
+
+    The YAML order is the intended display order (it mirrors Monarch's groups).
+    """
     if hierarchy is None:
         hierarchy = load_hierarchy()
 
-    return sorted(
+    return [
         name for name, info in hierarchy.items()
         if info.get("type") == "expense"
-    )
+    ]
+
+
+def get_subcategories_by_type(parent_type: str, hierarchy: Optional[dict] = None) -> list[str]:
+    """Subcategories of every parent with this type (expense | income | investment | exclude).
+
+    YAML order: parents in file order, each parent's subcategories in its listed order.
+    """
+    if hierarchy is None:
+        hierarchy = load_hierarchy()
+
+    return [
+        sub
+        for info in hierarchy.values()
+        if info.get("type") == parent_type
+        for sub in info.get("subcategories", [])
+    ]
 
 
 def load_subcategory_emoji(hierarchy_file: Optional[str] = None) -> dict[str, str]:
@@ -79,3 +98,24 @@ def get_fixed_subcategories(hierarchy: Optional[dict] = None) -> list[str]:
         hierarchy = load_hierarchy()
 
     return [sub for info in hierarchy.values() for sub in info.get("fixed", [])]
+
+
+def build_subcategory_emoji_map(
+    hierarchy: Optional[dict] = None, subcategory_emoji: Optional[dict[str, str]] = None
+) -> dict[str, str]:
+    """{subcategory: emoji} for every subcategory in the hierarchy.
+
+    Uses the subcategory's own emoji from `subcategory_emoji:` when it has one,
+    otherwise its parent's emoji ("" when neither has one). Arguments default to
+    the real rules/category_hierarchy.yaml.
+    """
+    if hierarchy is None:
+        hierarchy = load_hierarchy()
+    if subcategory_emoji is None:
+        subcategory_emoji = load_subcategory_emoji()
+
+    emoji_map = {}
+    for info in hierarchy.values():
+        for sub in info.get("subcategories", []):
+            emoji_map[sub] = subcategory_emoji.get(sub) or info.get("emoji", "")
+    return emoji_map
