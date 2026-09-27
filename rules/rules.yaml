@@ -118,7 +118,7 @@ expense_overrides:
   - match_field: category
     pattern: "Restaurants & Bars"
     match_mode: exact
-    assign_category: "Dining"
+    assign_category: "Restaurants & Alcohol"
 
   - match_field: category
     pattern: "Furniture & Housewares"
@@ -133,7 +133,12 @@ expense_overrides:
   - match_field: category
     pattern: "Travel & Vacation"
     match_mode: exact
-    assign_category: "Travel"
+    assign_category: "Travel Logistics"
+
+  - match_field: category
+    pattern: "Travel Food"
+    match_mode: exact
+    assign_category: "Travel Food & Drinks"
 
   - match_field: category
     pattern: "Entertainment & Recreation"

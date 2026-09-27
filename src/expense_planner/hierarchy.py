@@ -92,12 +92,16 @@ def load_subcategory_emoji(hierarchy_file: Optional[str] = None) -> dict[str, st
     return data.get("subcategory_emoji") or {}
 
 
-def get_fixed_subcategories(hierarchy: Optional[dict] = None) -> list[str]:
-    """Subcategories marked fixed (recur every month regardless of choices), in YAML order."""
-    if hierarchy is None:
-        hierarchy = load_hierarchy()
+CONTROL_LEVELS = ("fixed", "essential", "controllable")
 
-    return [sub for info in hierarchy.values() for sub in info.get("fixed", [])]
+
+def load_control(hierarchy_file: Optional[str] = None) -> dict[str, str]:
+    """How much say the owner has over each expense subcategory:
+    {subcategory: fixed | essential | controllable} ({} when the file has none)."""
+    path = Path(hierarchy_file) if hierarchy_file else HIERARCHY_FILE
+    with open(path) as f:
+        data = yaml.safe_load(f)
+    return data.get("control") or {}
 
 
 def build_subcategory_emoji_map(

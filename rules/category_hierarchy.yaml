@@ -1,23 +1,23 @@
 # Category hierarchy: the one category list the Cashew sheet and Cashew App share.
 #
-# Groups (parents) mirror the owner's Monarch Money category groups; the
+# Groups (parents) follow the owner's Monarch Money groups (Travel and Lifestyle
+# split apart, 2026-09-27); the
 # subcategory names are shorter labels for Monarch's categories (rules.yaml
 # translates Monarch's names into these). Every assign_category in rules.yaml
 # and every category the app can show must be listed here.
 #
-# Per parent:
-#   emoji, type (expense | income | investment | exclude), subcategories (in
-#   display order), optional fixed: subcategories that recur every month
-#   whatever the owner does (the app's Home budgets only the rest).
+# Per parent: emoji, type (expense | income | investment | exclude) and
+# subcategories (in display order). `control` (below) says how much say the
+# owner has over each expense subcategory.
 # Reorder, rename or move subcategories here; rules.yaml must follow a rename.
 
 hierarchy:
-  Food & Dining:
+  Food & Drinks:
     emoji: "🍽️"
     type: expense
     subcategories:
       - Groceries
-      - Dining
+      - Restaurants & Alcohol
       - Coffee Shops
 
   Shopping:
@@ -31,15 +31,23 @@ hierarchy:
       - Shipping
       - Vape & Nashe
 
-  Travel & Lifestyle:
+  Lifestyle:
+    emoji: "🎭"
+    type: expense
+    subcategories:
+      - Entertainment
+      - Gifts
+      - Personal
+      - Charity
+
+  # Trips: getting there and staying (flights, hotels, events and tickets on
+  # the trip) versus eating and drinking out on it.
+  Travel & Vacation:
     emoji: "✈️"
     type: expense
     subcategories:
-      - Travel
-      - Travel Food
-      - Entertainment
-      - Personal
-      - Charity
+      - Travel Logistics
+      - Travel Food & Drinks
 
   Auto & Transport:
     emoji: "🚗"
@@ -58,8 +66,6 @@ hierarchy:
     subcategories:
       - Rent
       - Home Improvement
-    fixed:
-      - Rent
 
   Bills & Utilities:
     emoji: "📱"
@@ -70,8 +76,6 @@ hierarchy:
       - Internet
       - Water
       - Garbage
-    fixed:
-      - Electricity
 
   Health & Wellness:
     emoji: "💊"
@@ -132,11 +136,60 @@ hierarchy:
       - Credit Card Payment
       - Balance Adjustments
 
+# How much say the owner has over each expense subcategory (every expense
+# subcategory has one):
+#   fixed         the same every month; can't change it this month (rent, bills)
+#   essential     needed but irregular; not something to cut (gifts, medical,
+#                 travel logistics)
+#   controllable  can be brought down (shopping, restaurants & alcohol)
+# The app's monthly target covers everything but fixed.
+control:
+  Groceries: essential
+  Restaurants & Alcohol: controllable
+  Coffee Shops: controllable
+  Shopping: controllable
+  Clothing: controllable
+  Electronics: controllable
+  Furniture: controllable
+  Shipping: controllable
+  Vape & Nashe: controllable
+  Entertainment: controllable
+  Gifts: essential
+  Personal: essential
+  Charity: essential
+  Travel Logistics: essential
+  Travel Food & Drinks: controllable
+  Gas: essential
+  Auto Maintenance: essential
+  Auto Payment: fixed
+  Parking & Tolls: controllable
+  Public Transit: essential
+  Rideshare: controllable
+  Rent: fixed
+  Home Improvement: essential
+  Electricity: fixed
+  Phone: fixed
+  Internet: fixed
+  Water: fixed
+  Garbage: fixed
+  Medical: essential
+  Dentist: essential
+  Fitness: fixed
+  Insurance: fixed
+  Fees: controllable
+  Financial Services: essential
+  Taxes: essential
+  Cash & ATM: controllable
+  Loan Repayment: fixed
+  Student Loans: fixed
+  Uncategorized: controllable
+  Miscellaneous: controllable
+
 # Per-subcategory emoji for the sheet's category cells and the app's rows.
 # A subcategory without one shows its parent's emoji.
 subcategory_emoji:
   Groceries: "🛒"
-  Dining: "🍽️"
+  Restaurants & Alcohol: "🍽️"
   Coffee Shops: "☕"
   Shopping: "🛍️"
   Clothing: "👔"
@@ -144,9 +197,10 @@ subcategory_emoji:
   Furniture: "🛋️"
   Shipping: "📦"
   Vape & Nashe: "🌿"
-  Travel: "✈️"
-  Travel Food: "🥡"
+  Travel Logistics: "✈️"
+  Travel Food & Drinks: "🥡"
   Entertainment: "🎭"
+  Gifts: "🎁"
   Personal: "👤"
   Charity: "🎗️"
   Gas: "⛽"

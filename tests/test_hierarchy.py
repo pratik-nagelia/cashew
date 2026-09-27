@@ -12,7 +12,8 @@ from expense_planner.hierarchy import (
     build_subcategory_emoji_map,
     build_subcategory_to_parent_map,
     get_expense_parents,
-    get_fixed_subcategories,
+    CONTROL_LEVELS,
+    load_control,
     get_subcategories_by_type,
     load_hierarchy,
     load_subcategory_emoji,
@@ -22,14 +23,10 @@ from expense_planner.models import Transaction, TransactionType
 RULES_FILE = HIERARCHY_FILE.parent / "rules.yaml"
 
 
-def test_fixed_subcategories_come_from_each_parent_in_order(tmp_path):
+def test_control_is_empty_when_the_file_has_none(tmp_path):
     path = tmp_path / "h.yaml"
-    path.write_text(yaml.safe_dump({"hierarchy": {
-        "Housing": {"type": "expense", "subcategories": ["Rent", "Home Improvement"], "fixed": ["Rent"]},
-        "Food": {"type": "expense", "subcategories": ["Groceries"]},
-        "Bills": {"type": "expense", "subcategories": ["Electricity"], "fixed": ["Electricity"]},
-    }}, sort_keys=False))
-    assert get_fixed_subcategories(load_hierarchy(str(path))) == ["Rent", "Electricity"]
+    path.write_text(yaml.safe_dump({"hierarchy": {}}))
+    assert load_control(str(path)) == {}
 
 
 def test_subcategory_emoji_is_empty_when_the_file_has_none(tmp_path):
@@ -45,9 +42,16 @@ def test_real_hierarchy_is_consistent():
     assert len(names) == len(set(names)), "a subcategory is listed under two parents"
     for parent, info in hierarchy.items():
         assert info["type"] in {"expense", "income", "investment", "exclude"}, parent
-        assert set(info.get("fixed", [])) <= set(info["subcategories"]), parent
     emoji = load_subcategory_emoji()
     assert set(emoji) <= set(parent_of), "emoji for a subcategory that doesn't exist"
+
+
+def test_every_expense_subcategory_has_exactly_one_control_level():
+    hierarchy = load_hierarchy()
+    control = load_control()
+    expense_subs = {s for info in hierarchy.values() if info["type"] == "expense" for s in info["subcategories"]}
+    assert set(control) == expense_subs
+    assert set(control.values()) <= set(CONTROL_LEVELS)
 
 
 def test_every_category_the_rules_assign_is_in_the_hierarchy():
