@@ -1,8 +1,12 @@
 """The shared category list: loaders and the real rules/category_hierarchy.yaml."""
 
+from datetime import date
+from decimal import Decimal
+
+import pytest
 import yaml
 
-from expense_planner.categorizer import load_rules
+from expense_planner.categorizer import categorize, load_rules
 from expense_planner.hierarchy import (
     HIERARCHY_FILE,
     build_subcategory_emoji_map,
@@ -13,6 +17,7 @@ from expense_planner.hierarchy import (
     load_hierarchy,
     load_subcategory_emoji,
 )
+from expense_planner.models import Transaction, TransactionType
 
 RULES_FILE = HIERARCHY_FILE.parent / "rules.yaml"
 
@@ -100,3 +105,38 @@ def test_emoji_map_falls_back_to_parent_emoji(tmp_path):
 def test_every_real_subcategory_has_an_emoji():
     emoji = build_subcategory_emoji_map()
     assert all(emoji.values()), [s for s, e in emoji.items() if not e]
+
+
+# Every category the owner's Monarch account uses (2026-09-27). A name that
+# stopped reaching a hierarchy subcategory would be written to FY-26-Auto under
+# a label Reports has no row for, and drop out of its totals without a sound.
+OWNER_MONARCH_CATEGORIES = [
+    "Auto Payment", "Garbage", "Groceries", "Investment", "Loan Repayment", "Medical", "Paychecks", "Rent",
+    "Shopping", "Student Loans", "Transfer", "Travel & Vacation", "Uncategorized", "Charity", "Clothing",
+    "Credit Card Payment", "Dentist", "Education", "Financial & Legal Services", "Home Improvement",
+    "India Transfer", "Interest", "Miscellaneous", "Public Transit", "Restaurants & Bars", "Water",
+    "Balance Adjustments", "Coffee Shops", "Entertainment & Recreation", "Financial Fees", "Fitness",
+    "Furniture & Housewares", "Gas", "Gas & Electric", "Other Income", "Stocks", "Auto Maintenance",
+    "Cash & ATM", "Electronics", "FDs", "Internet & Cable", "Personal", "Insurance", "Parking & Tolls",
+    "Phone", "Travel Food", "Taxes", "Taxi & Ride Shares", "Postage & Shipping", "Vape & Nashe",
+    "Business Income",
+]
+EXCLUDED = {"Transfer", "Credit Card Payment", "Balance Adjustments"}
+
+
+@pytest.mark.parametrize("monarch_name", OWNER_MONARCH_CATEGORIES)
+def test_every_owner_monarch_category_lands_on_a_subcategory_of_the_right_type(monarch_name):
+    rules = load_rules(str(RULES_FILE))
+    hierarchy = load_hierarchy()
+    parent_of = build_subcategory_to_parent_map(hierarchy)
+    amount = Decimal("100") if monarch_name in {"Paychecks", "Other Income", "Business Income", "Interest"} else Decimal("-25")
+    txn = Transaction(
+        id="t", date=date(2026, 9, 1), amount=amount, merchant="Some Merchant", category=monarch_name,
+        category_id="", account="Checking", account_id="", month="2026-09",
+    )
+    categorize(txn, rules)
+    if monarch_name in EXCLUDED:
+        assert txn.resolved_type == TransactionType.EXCLUDE
+        return
+    assert txn.resolved_category in parent_of, f"{monarch_name} -> {txn.resolved_category}, not in the hierarchy"
+    assert hierarchy[parent_of[txn.resolved_category]]["type"] == txn.resolved_type.value

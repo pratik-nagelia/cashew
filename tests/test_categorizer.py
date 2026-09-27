@@ -353,6 +353,16 @@ class TestGetKnownCategories:
         known = get_known_categories(sample_rules_file)
         assert "India Transfer" in known
 
+    def test_a_hierarchy_subcategory_needs_no_rule(self, tmp_path):
+        """Monarch names equal to a subcategory are kept as is, so they're known."""
+        (tmp_path / "rules.yaml").write_text("expense_overrides: []\n")
+        (tmp_path / "category_hierarchy.yaml").write_text(
+            "hierarchy:\n  Food:\n    type: expense\n    subcategories: [Groceries]\n"
+        )
+        known = get_known_categories(str(tmp_path / "rules.yaml"))
+        assert "Groceries" in known
+        assert "Pet Care" not in known
+
     def test_pet_care_not_known(self, sample_rules_file):
         """Pet Care is not in the rules — should be detected as unknown."""
         known = get_known_categories(sample_rules_file)
