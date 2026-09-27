@@ -63,3 +63,19 @@ def get_expense_parents(hierarchy: Optional[dict] = None) -> list[str]:
         name for name, info in hierarchy.items()
         if info.get("type") == "expense"
     )
+
+
+def load_subcategory_emoji(hierarchy_file: Optional[str] = None) -> dict[str, str]:
+    """Per-subcategory emoji from the hierarchy YAML ({} when it has none)."""
+    path = Path(hierarchy_file) if hierarchy_file else HIERARCHY_FILE
+    with open(path) as f:
+        data = yaml.safe_load(f)
+    return data.get("subcategory_emoji") or {}
+
+
+def get_fixed_subcategories(hierarchy: Optional[dict] = None) -> list[str]:
+    """Subcategories marked fixed (recur every month regardless of choices), in YAML order."""
+    if hierarchy is None:
+        hierarchy = load_hierarchy()
+
+    return [sub for info in hierarchy.values() for sub in info.get("fixed", [])]
