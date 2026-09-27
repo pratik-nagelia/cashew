@@ -1,8 +1,8 @@
 # Pratik's categorization rules for expense-planner
-# Rules evaluated: exclude → investment → remittance → income → expense override → default
+# Rules evaluated: hidden → investment → exclude → remittance → income → expense override → default
 # First match wins within each section.
 #
-# Last updated: 2026-06-25 (cleaned up categories, merged duplicates)
+# Last updated: 2026-09-27 (Monarch groups with short labels; see category_hierarchy.yaml)
 
 # --- Exclusions (internal transfers, double-counting) ---
 exclude_rules:
@@ -15,6 +15,11 @@ exclude_rules:
     pattern: "Credit Card Payment"
     match_mode: contains
     note: "CC payments are not real expenses (already counted on the CC)"
+
+  - match_field: category
+    pattern: "Balance Adjustments"
+    match_mode: exact
+    note: "Monarch's manual balance corrections, not money moving"
 
 # --- Investments (tracked separately — not expenses) ---
 investment_rules:
@@ -56,6 +61,17 @@ investment_rules:
     match_mode: contains
     assign_category: "Stocks"
 
+  # Monarch's own Investment-group categories
+  - match_field: category
+    pattern: "Stocks"
+    match_mode: exact
+    assign_category: "Stocks"
+
+  - match_field: category
+    pattern: "FDs"
+    match_mode: exact
+    assign_category: "FDs"
+
   # Catch-all: Monarch's own "Investment" category (e.g. CD deposits)
   - match_field: category
     pattern: "Investment"
@@ -94,59 +110,51 @@ income_rules:
     assign_category: "Business Income"
 
 # --- Expense category overrides ---
-# Reclassify Monarch's category into your preferred taxonomy.
-# If no override matches, Monarch's original category is used.
+# Translate Monarch's category names (also what Cashew App maps Plaid's
+# categories to) into the shorter labels in category_hierarchy.yaml. A Monarch
+# name that already matches a subcategory there (Groceries, Gas, Rent, Phone,
+# Medical, Charity...) needs no rule: the default keeps it.
 expense_overrides:
-  # Housing — rent payments
   - match_field: category
-    pattern: "Rent"
+    pattern: "Restaurants & Bars"
     match_mode: exact
-    assign_category: "Housing"
-
-  # Home Improvement — furniture, repairs, housewares
-  - match_field: category
-    pattern: "Home Improvement"
-    match_mode: exact
-    assign_category: "Home Improvement"
+    assign_category: "Dining"
 
   - match_field: category
     pattern: "Furniture & Housewares"
     match_mode: exact
-    assign_category: "Home Improvement"
-
-  # Auto — gas, maintenance, auto payments
-  - match_field: category
-    pattern: "Gas"
-    match_mode: exact
-    assign_category: "Auto"
+    assign_category: "Furniture"
 
   - match_field: category
-    pattern: "Auto Maintenance"
+    pattern: "Postage & Shipping"
     match_mode: exact
-    assign_category: "Auto"
+    assign_category: "Shipping"
 
   - match_field: category
-    pattern: "Auto Payment"
+    pattern: "Travel & Vacation"
     match_mode: exact
-    assign_category: "Auto"
+    assign_category: "Travel"
 
-  # Transport — ride shares, parking, public transit
+  - match_field: category
+    pattern: "Entertainment & Recreation"
+    match_mode: exact
+    assign_category: "Entertainment"
+
   - match_field: category
     pattern: "Taxi & Ride Shares"
     match_mode: exact
-    assign_category: "Transport"
+    assign_category: "Rideshare"
 
   - match_field: category
-    pattern: "Parking & Tolls"
+    pattern: "Gas & Electric"
     match_mode: exact
-    assign_category: "Transport"
+    assign_category: "Electricity"
 
   - match_field: category
-    pattern: "Public Transit"
+    pattern: "Internet & Cable"
     match_mode: exact
-    assign_category: "Transport"
+    assign_category: "Internet"
 
-  # Fees — financial fees, legal services
   - match_field: category
     pattern: "Financial Fees"
     match_mode: exact
@@ -155,103 +163,15 @@ expense_overrides:
   - match_field: category
     pattern: "Financial & Legal Services"
     match_mode: exact
-    assign_category: "Fees"
+    assign_category: "Financial Services"
 
-  # Insurance
   - match_field: category
     pattern: "Insurance"
     match_mode: contains
     assign_category: "Insurance"
 
-  # Loan repayments — kept as their own subcategory so they stay visible
-  - match_field: category
-    pattern: "Student Loans"
-    match_mode: exact
-    assign_category: "Student Loans"
-
-  # Food
-  - match_field: category
-    pattern: "Groceries"
-    match_mode: exact
-    assign_category: "Groceries"
-
-  - match_field: category
-    pattern: "Restaurants & Bars"
-    match_mode: exact
-    assign_category: "Dining"
-
-  - match_field: category
-    pattern: "Coffee Shops"
-    match_mode: exact
-    assign_category: "Coffee Shops"
-
-  # Shopping
-  - match_field: category
-    pattern: "Shopping"
-    match_mode: exact
-    assign_category: "Shopping"
-
-  - match_field: category
-    pattern: "Postage & Shipping"
-    match_mode: exact
-    assign_category: "Shopping"
-
-  - match_field: category
-    pattern: "Electronics"
-    match_mode: exact
-    assign_category: "Shopping"
-
-  # Lifestyle
-  - match_field: category
-    pattern: "Entertainment & Recreation"
-    match_mode: exact
-    assign_category: "Entertainment"
-
-  - match_field: category
-    pattern: "Travel & Vacation"
-    match_mode: exact
-    assign_category: "Travel"
-
-  - match_field: category
-    pattern: "Travel Food"
-    match_mode: exact
-    assign_category: "Travel"
-
-  - match_field: category
-    pattern: "Clothing"
-    match_mode: exact
-    assign_category: "Clothing"
-
-  # Health
-  - match_field: category
-    pattern: "Fitness"
-    match_mode: exact
-    assign_category: "Health"
-
-  - match_field: category
-    pattern: "Medical"
-    match_mode: exact
-    assign_category: "Health"
-
-  # Utilities
-  - match_field: category
-    pattern: "Phone"
-    match_mode: exact
-    assign_category: "Utilities"
-
-  # Personal
-  - match_field: category
-    pattern: "Vape & Nashe"
-    match_mode: exact
-    assign_category: "Vape & Nashe"
-
-  - match_field: category
-    pattern: "Charity"
-    match_mode: exact
-    assign_category: "Personal"
-
-  # Refunds fall through to default — they keep their Monarch category
-  # and their positive amount naturally subtracts from the SUM
+  # Refunds keep their Monarch category: the positive amount nets against that
+  # category's spend.
 
 # --- Defaults ---
 defaults:

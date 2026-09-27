@@ -1,25 +1,17 @@
-# Category hierarchy — maps subcategories (used in transactions) to parent categories (used in reports)
-# Based on Monarch Money's built-in category groups
+# Category hierarchy: the one category list the Cashew sheet and Cashew App share.
 #
-# Structure: parent category → list of subcategories
-# The subcategory names here must match what appears in the transaction data
-# (i.e., the assign_category values from rules.yaml)
+# Groups (parents) mirror the owner's Monarch Money category groups; the
+# subcategory names are shorter labels for Monarch's categories (rules.yaml
+# translates Monarch's names into these). Every assign_category in rules.yaml
+# and every category the app can show must be listed here.
+#
+# Per parent:
+#   emoji, type (expense | income | investment | exclude), subcategories (in
+#   display order), optional fixed: subcategories that recur every month
+#   whatever the owner does (the app's Home budgets only the rest).
+# Reorder, rename or move subcategories here; rules.yaml must follow a rename.
 
 hierarchy:
-  # Expense categories
-  Auto & Transport:
-    emoji: "🚗"
-    type: expense
-    subcategories:
-      - Auto
-      - Transport
-
-  Bills & Utilities:
-    emoji: "📱"
-    type: expense
-    subcategories:
-      - Utilities
-
   Food & Dining:
     emoji: "🍽️"
     type: expense
@@ -28,33 +20,15 @@ hierarchy:
       - Dining
       - Coffee Shops
 
-  Financial:
-    emoji: "🏦"
-    type: expense
-    subcategories:
-      - Insurance
-      - Fees
-      - Student Loans
-
-  Health & Wellness:
-    emoji: "💊"
-    type: expense
-    subcategories:
-      - Health
-
-  Housing:
-    emoji: "🏠"
-    type: expense
-    subcategories:
-      - Housing
-      - Home Improvement
-
   Shopping:
     emoji: "🛍️"
     type: expense
     subcategories:
       - Shopping
       - Clothing
+      - Electronics
+      - Furniture
+      - Shipping
       - Vape & Nashe
 
   Travel & Lifestyle:
@@ -62,30 +36,151 @@ hierarchy:
     type: expense
     subcategories:
       - Travel
+      - Travel Food
       - Entertainment
       - Personal
+      - Charity
+
+  Auto & Transport:
+    emoji: "🚗"
+    type: expense
+    subcategories:
+      - Gas
+      - Auto Maintenance
+      - Auto Payment
+      - Parking & Tolls
+      - Public Transit
+      - Rideshare
+
+  Housing:
+    emoji: "🏠"
+    type: expense
+    subcategories:
+      - Rent
+      - Home Improvement
+    fixed:
+      - Rent
+
+  Bills & Utilities:
+    emoji: "📱"
+    type: expense
+    subcategories:
+      - Electricity
+      - Phone
+      - Internet
+      - Water
+      - Garbage
+    fixed:
+      - Electricity
+
+  Health & Wellness:
+    emoji: "💊"
+    type: expense
+    subcategories:
+      - Medical
+      - Dentist
+      - Fitness
+
+  Financial:
+    emoji: "🏦"
+    type: expense
+    subcategories:
+      - Insurance
+      - Fees
+      - Financial Services
+      - Taxes
+      - Cash & ATM
+      - Loan Repayment
+      - Student Loans
 
   Other:
     emoji: "❓"
     type: expense
     subcategories:
       - Uncategorized
-      - Refund
+      - Miscellaneous
 
-  # Income categories
   Income:
     emoji: "💰"
     type: income
     subcategories:
       - Paycheck
       - Business Income
+      - Other Income
 
-  # Investment categories
+  # Eva's college and AI subscriptions: money spent on growth, kept out of spend.
+  Education:
+    emoji: "🎓"
+    type: investment
+    subcategories:
+      - Education
+
   Investment:
     emoji: "📈"
     type: investment
     subcategories:
-      - India Transfer
       - Stocks
       - FDs
-      - Education
+      - India Transfer
+
+  # Money moving between own accounts; never counted as spend or income.
+  Transfers:
+    emoji: "🔁"
+    type: exclude
+    subcategories:
+      - Transfer
+      - Credit Card Payment
+      - Balance Adjustments
+
+# Per-subcategory emoji for the sheet's category cells and the app's rows.
+# A subcategory without one shows its parent's emoji.
+subcategory_emoji:
+  Groceries: "🛒"
+  Dining: "🍽️"
+  Coffee Shops: "☕"
+  Shopping: "🛍️"
+  Clothing: "👔"
+  Electronics: "💻"
+  Furniture: "🛋️"
+  Shipping: "📦"
+  Vape & Nashe: "🌿"
+  Travel: "✈️"
+  Travel Food: "🥡"
+  Entertainment: "🎭"
+  Personal: "👤"
+  Charity: "🎗️"
+  Gas: "⛽"
+  Auto Maintenance: "🔧"
+  Auto Payment: "🚗"
+  Parking & Tolls: "🅿️"
+  Public Transit: "🚇"
+  Rideshare: "🚕"
+  Rent: "🏠"
+  Home Improvement: "🔨"
+  Electricity: "💡"
+  Phone: "📱"
+  Internet: "🌐"
+  Water: "🚰"
+  Garbage: "🗑️"
+  Medical: "💊"
+  Dentist: "🦷"
+  Fitness: "🏋️"
+  Insurance: "🛡️"
+  Fees: "🏦"
+  Financial Services: "⚖️"
+  Taxes: "🧾"
+  Cash & ATM: "🏧"
+  Loan Repayment: "💳"
+  Student Loans: "🎓"
+  Uncategorized: "❓"
+  Miscellaneous: "🗂️"
+  Paycheck: "💰"
+  Business Income: "💼"
+  Other Income: "💵"
+  Education: "🎓"
+  Stocks: "📊"
+  FDs: "🏦"
+  India Transfer: "🇮🇳"
+  Transfer: "🔁"
+  Credit Card Payment: "💳"
+  Balance Adjustments: "⚖️"
