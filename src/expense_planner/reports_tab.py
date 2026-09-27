@@ -47,7 +47,8 @@ REPORT_SUBCATEGORIES = [
     "Auto", "Clothing", "Coffee Shops", "Dining",
     "Entertainment", "Fees", "Groceries", "Health", "Home Improvement",
     "Housing", "Insurance", "Personal", "Refund", "Shopping",
-    "Transport", "Travel", "Uncategorized", "Utilities", "Vape & Nashe",
+    "Student Loans", "Transport", "Travel", "Uncategorized", "Utilities",
+    "Vape & Nashe",
 ]
 
 

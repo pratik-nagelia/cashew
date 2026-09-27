@@ -62,14 +62,16 @@ class TestLayoutInvariants:
         assert INCOME_START <= INCOME_END
 
     def test_investment_has_20_slots_and_income_follows(self):
-        # Per layout spec: investments start at 171 with 20 slots, income below
-        assert INVEST_LABEL == 171
+        # Per layout spec: investments sit directly below the expense block
+        # with 20 slots, income below that.
+        assert INVEST_LABEL == EXPENSE_END + 1
         assert (INVEST_END - INVEST_START + 1) == 20
         assert INCOME_LABEL == INVEST_END + 1
 
     def test_capacities_cover_observed_maxima(self):
-        # Observed maxima (Jan-Jul 2026): expenses 133, income 7, investments 17
-        assert (EXPENSE_END - EXPENSE_START + 1) >= 133
+        # Observed maxima (Jan-Sep 2026): expenses 185 (Aug, the travel month),
+        # income 7, investments 17
+        assert (EXPENSE_END - EXPENSE_START + 1) >= 185
         assert (INCOME_END - INCOME_START + 1) >= 7
         assert (INVEST_END - INVEST_START + 1) >= 17
 

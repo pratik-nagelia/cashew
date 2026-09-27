@@ -163,6 +163,12 @@ expense_overrides:
     match_mode: contains
     assign_category: "Insurance"
 
+  # Loan repayments — kept as their own subcategory so they stay visible
+  - match_field: category
+    pattern: "Student Loans"
+    match_mode: exact
+    assign_category: "Student Loans"
+
   # Food
   - match_field: category
     pattern: "Groceries"

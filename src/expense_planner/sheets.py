@@ -81,15 +81,15 @@ MONTH_NAMES = [
 # block below. If a month ever exceeds a section's capacity, sync raises
 # instead of silently dropping transactions (see _fit_to_region).
 SUMMARY_START = 1     # Row 1-5: header + summary
-EXPENSE_START = 6     # Row 6-170: expenses (165 slots)
-EXPENSE_END = 170
-INVEST_LABEL = 171    # Row 171: separator — investments start here
-INVEST_START = 172    # Row 172-191: investments (20 slots)
-INVEST_END = 191
-INCOME_LABEL = 192    # Row 192: separator
-INCOME_START = 193    # Row 193-217: income (25 slots)
-INCOME_END = 217
-TOTAL_ROWS = 217
+EXPENSE_START = 6     # Row 6-305: expenses (300 slots)
+EXPENSE_END = 305
+INVEST_LABEL = 306    # Row 306: separator — investments start here
+INVEST_START = 307    # Row 307-326: investments (20 slots)
+INVEST_END = 326
+INCOME_LABEL = 327    # Row 327: separator
+INCOME_START = 328    # Row 328-352: income (25 slots)
+INCOME_END = 352
+TOTAL_ROWS = 352
 
 # Emoji map for categories — matches Monarch's visual style
 CATEGORY_EMOJI = {
@@ -140,7 +140,8 @@ EXPENSE_CATEGORIES = sorted([
         "Auto", "Clothing", "Coffee Shops", "Dining",
         "Entertainment", "Fees", "Groceries", "Health", "Home Improvement",
         "Housing", "Insurance", "Personal", "Refund", "Shopping",
-        "Transport", "Travel", "Uncategorized", "Utilities", "Vape & Nashe",
+        "Student Loans", "Transport", "Travel", "Uncategorized", "Utilities",
+        "Vape & Nashe",
     ]
 ])
 
