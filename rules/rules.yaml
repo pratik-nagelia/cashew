@@ -2,23 +2,26 @@
 # Rules evaluated: hidden → investment → exclude → remittance → income → expense override → default
 # First match wins within each section.
 #
-# Last updated: 2026-09-27 (Monarch groups with short labels; see category_hierarchy.yaml)
+# Last updated: 2026-09-27 (owner's trimmed list; see category_hierarchy.yaml)
 
 # --- Exclusions (internal transfers, double-counting) ---
 exclude_rules:
   - match_field: category
     pattern: "Transfer"
     match_mode: exact
+    assign_category: "Transfer"
     note: "Internal transfers between own accounts (fills CC payments etc)"
 
   - match_field: category
     pattern: "Credit Card Payment"
     match_mode: contains
+    assign_category: "Transfer"
     note: "CC payments are not real expenses (already counted on the CC)"
 
   - match_field: category
     pattern: "Balance Adjustments"
     match_mode: exact
+    assign_category: "Transfer"
     note: "Monarch's manual balance corrections, not money moving"
 
 # --- Investments (tracked separately — not expenses) ---
@@ -107,28 +110,44 @@ income_rules:
   - match_field: category
     pattern: "Business Income"
     match_mode: exact
-    assign_category: "Business Income"
+    assign_category: "Other Income"
 
 # --- Expense category overrides ---
 # Translate Monarch's category names (also what Cashew App maps Plaid's
 # categories to) into the shorter labels in category_hierarchy.yaml. A Monarch
 # name that already matches a subcategory there (Groceries, Gas, Rent, Phone,
-# Medical, Charity...) needs no rule: the default keeps it.
+# Medical, Restaurants & Bars...) needs no rule: the default keeps it.
 expense_overrides:
+  # Monarch files the electric bill under Rent; Housing is rent only.
+  - match_field: merchant
+    pattern: "Seattle City Light"
+    match_mode: contains
+    assign_category: "Electricity"
+
   - match_field: category
-    pattern: "Restaurants & Bars"
+    pattern: "Coffee Shops"
     match_mode: exact
-    assign_category: "Restaurants & Alcohol"
+    assign_category: "Restaurants & Bars"
+
+  - match_field: category
+    pattern: "Electronics"
+    match_mode: exact
+    assign_category: "Shopping"
 
   - match_field: category
     pattern: "Furniture & Housewares"
     match_mode: exact
-    assign_category: "Furniture"
+    assign_category: "Shopping"
 
   - match_field: category
     pattern: "Postage & Shipping"
     match_mode: exact
-    assign_category: "Shipping"
+    assign_category: "Shopping"
+
+  - match_field: category
+    pattern: "Charity"
+    match_mode: exact
+    assign_category: "Gifts"
 
   - match_field: category
     pattern: "Travel & Vacation"
@@ -141,14 +160,29 @@ expense_overrides:
     assign_category: "Travel Food & Drinks"
 
   - match_field: category
-    pattern: "Entertainment & Recreation"
+    pattern: "Auto Maintenance"
     match_mode: exact
-    assign_category: "Entertainment"
+    assign_category: "Auto"
+
+  - match_field: category
+    pattern: "Auto Payment"
+    match_mode: exact
+    assign_category: "Auto"
+
+  - match_field: category
+    pattern: "Insurance"
+    match_mode: contains
+    assign_category: "Auto"
+
+  - match_field: category
+    pattern: "Public Transit"
+    match_mode: exact
+    assign_category: "Transit & Rideshare"
 
   - match_field: category
     pattern: "Taxi & Ride Shares"
     match_mode: exact
-    assign_category: "Rideshare"
+    assign_category: "Transit & Rideshare"
 
   - match_field: category
     pattern: "Gas & Electric"
@@ -161,6 +195,11 @@ expense_overrides:
     assign_category: "Internet"
 
   - match_field: category
+    pattern: "Dentist"
+    match_mode: exact
+    assign_category: "Medical"
+
+  - match_field: category
     pattern: "Financial Fees"
     match_mode: exact
     assign_category: "Fees"
@@ -169,11 +208,6 @@ expense_overrides:
     pattern: "Financial & Legal Services"
     match_mode: exact
     assign_category: "Financial Services"
-
-  - match_field: category
-    pattern: "Insurance"
-    match_mode: contains
-    assign_category: "Insurance"
 
   # Refunds keep their Monarch category: the positive amount nets against that
   # category's spend.

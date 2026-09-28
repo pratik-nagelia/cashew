@@ -1,7 +1,7 @@
 # Category hierarchy: the one category list the Cashew sheet and Cashew App share.
 #
 # Groups (parents) follow the owner's Monarch Money groups (Travel and Lifestyle
-# split apart, 2026-09-27); the
+# split apart; trimmed and merged per the owner's list, 2026-09-27); the
 # subcategory names are shorter labels for Monarch's categories (rules.yaml
 # translates Monarch's names into these). Every assign_category in rules.yaml
 # and every category the app can show must be listed here.
@@ -17,28 +17,26 @@ hierarchy:
     type: expense
     subcategories:
       - Groceries
-      - Restaurants & Alcohol
-      - Coffee Shops
+      - Restaurants & Bars
 
+  # Vape & Nashe: vape, tobacco and cannabis shops.
   Shopping:
     emoji: "🛍️"
     type: expense
     subcategories:
       - Shopping
       - Clothing
-      - Electronics
-      - Furniture
-      - Shipping
+      - Home Improvement
       - Vape & Nashe
 
   Lifestyle:
     emoji: "🎭"
     type: expense
     subcategories:
-      - Entertainment
+      - Entertainment & Recreation
       - Gifts
       - Personal
-      - Charity
+      - Fitness
 
   # Trips: getting there and staying (flights, hotels, events and tickets on
   # the trip) versus eating and drinking out on it.
@@ -49,23 +47,21 @@ hierarchy:
       - Travel Logistics
       - Travel Food & Drinks
 
+  # Auto: car payment, maintenance and insurance.
   Auto & Transport:
     emoji: "🚗"
     type: expense
     subcategories:
       - Gas
-      - Auto Maintenance
-      - Auto Payment
+      - Auto
       - Parking & Tolls
-      - Public Transit
-      - Rideshare
+      - Transit & Rideshare
 
   Housing:
     emoji: "🏠"
     type: expense
     subcategories:
       - Rent
-      - Home Improvement
 
   Bills & Utilities:
     emoji: "📱"
@@ -82,14 +78,11 @@ hierarchy:
     type: expense
     subcategories:
       - Medical
-      - Dentist
-      - Fitness
 
   Financial:
     emoji: "🏦"
     type: expense
     subcategories:
-      - Insurance
       - Fees
       - Financial Services
       - Taxes
@@ -109,7 +102,6 @@ hierarchy:
     type: income
     subcategories:
       - Paycheck
-      - Business Income
       - Other Income
 
   # Eva's college and AI subscriptions: money spent on growth, kept out of spend.
@@ -127,55 +119,46 @@ hierarchy:
       - FDs
       - India Transfer
 
-  # Money moving between own accounts; never counted as spend or income.
+  # Money moving between own accounts (card payments included); never counted
+  # as spend or income. Both sides of a move are in the data when both accounts
+  # are connected, so a month's transfers should net to about zero.
   Transfers:
     emoji: "🔁"
     type: exclude
     subcategories:
       - Transfer
-      - Credit Card Payment
-      - Balance Adjustments
 
 # How much say the owner has over each expense subcategory (every expense
 # subcategory has one):
 #   fixed         the same every month; can't change it this month (rent, bills)
 #   essential     needed but irregular; not something to cut (gifts, medical,
 #                 travel logistics)
-#   controllable  can be brought down (shopping, restaurants & alcohol)
+#   controllable  can be brought down (shopping, restaurants & bars)
 # The app's monthly target covers everything but fixed.
 control:
   Groceries: essential
-  Restaurants & Alcohol: controllable
-  Coffee Shops: controllable
+  Restaurants & Bars: controllable
   Shopping: controllable
   Clothing: controllable
-  Electronics: controllable
-  Furniture: controllable
-  Shipping: controllable
+  Home Improvement: controllable
   Vape & Nashe: controllable
-  Entertainment: controllable
+  Entertainment & Recreation: controllable
   Gifts: essential
   Personal: essential
-  Charity: essential
+  Fitness: fixed
   Travel Logistics: essential
   Travel Food & Drinks: controllable
   Gas: essential
-  Auto Maintenance: essential
-  Auto Payment: fixed
+  Auto: essential
   Parking & Tolls: controllable
-  Public Transit: essential
-  Rideshare: controllable
+  Transit & Rideshare: essential
   Rent: fixed
-  Home Improvement: essential
   Electricity: fixed
   Phone: fixed
   Internet: fixed
   Water: fixed
   Garbage: fixed
   Medical: essential
-  Dentist: essential
-  Fitness: fixed
-  Insurance: fixed
   Fees: controllable
   Financial Services: essential
   Taxes: essential
@@ -189,37 +172,28 @@ control:
 # A subcategory without one shows its parent's emoji.
 subcategory_emoji:
   Groceries: "🛒"
-  Restaurants & Alcohol: "🍽️"
-  Coffee Shops: "☕"
+  Restaurants & Bars: "🍽️"
   Shopping: "🛍️"
   Clothing: "👔"
-  Electronics: "💻"
-  Furniture: "🛋️"
-  Shipping: "📦"
+  Home Improvement: "🔨"
   Vape & Nashe: "🌿"
   Travel Logistics: "✈️"
   Travel Food & Drinks: "🥡"
-  Entertainment: "🎭"
+  Entertainment & Recreation: "🎭"
   Gifts: "🎁"
   Personal: "👤"
-  Charity: "🎗️"
+  Fitness: "🏋️"
   Gas: "⛽"
-  Auto Maintenance: "🔧"
-  Auto Payment: "🚗"
+  Auto: "🚗"
   Parking & Tolls: "🅿️"
-  Public Transit: "🚇"
-  Rideshare: "🚕"
+  Transit & Rideshare: "🚕"
   Rent: "🏠"
-  Home Improvement: "🔨"
   Electricity: "💡"
   Phone: "📱"
   Internet: "🌐"
   Water: "🚰"
   Garbage: "🗑️"
   Medical: "💊"
-  Dentist: "🦷"
-  Fitness: "🏋️"
-  Insurance: "🛡️"
   Fees: "💲"
   Financial Services: "⚖️"
   Taxes: "🧾"
@@ -229,12 +203,9 @@ subcategory_emoji:
   Uncategorized: "❓"
   Miscellaneous: "🗂️"
   Paycheck: "💰"
-  Business Income: "💼"
   Other Income: "💵"
   Education: "🎓"
   Stocks: "📊"
   FDs: "🏦"
   India Transfer: "🇮🇳"
   Transfer: "🔁"
-  Credit Card Payment: "💳"
-  Balance Adjustments: "🧮"

@@ -59,8 +59,10 @@ def test_every_category_the_rules_assign_is_in_the_hierarchy():
     parent_of = build_subcategory_to_parent_map(load_hierarchy())
     assigned = {
         rule["assign_category"]
-        for section in ("investment_rules", "remittance_rules", "income_rules", "expense_overrides")
+        for section in ("exclude_rules", "investment_rules", "remittance_rules", "income_rules",
+                        "expense_overrides")
         for rule in rules.get(section) or []
+        if "assign_category" in rule
     }
     assert assigned - set(parent_of) == set()
 
@@ -140,7 +142,18 @@ def test_every_owner_monarch_category_lands_on_a_subcategory_of_the_right_type(m
     )
     categorize(txn, rules)
     if monarch_name in EXCLUDED:
-        assert txn.resolved_type == TransactionType.EXCLUDE
+        # Card payments and balance fixes are transfers between own accounts.
+        assert (txn.resolved_type, txn.resolved_category) == (TransactionType.EXCLUDE, "Transfer")
         return
     assert txn.resolved_category in parent_of, f"{monarch_name} -> {txn.resolved_category}, not in the hierarchy"
     assert hierarchy[parent_of[txn.resolved_category]]["type"] == txn.resolved_type.value
+
+
+def test_electric_bill_filed_under_rent_goes_to_electricity():
+    rules = load_rules(str(RULES_FILE))
+    txn = Transaction(
+        id="t", date=date(2026, 9, 7), amount=Decimal("-90.61"), merchant="Seattle City Light",
+        category="Rent", category_id="", account="Card", account_id="", month="2026-09",
+    )
+    categorize(txn, rules)
+    assert (txn.resolved_type, txn.resolved_category) == (TransactionType.EXPENSE, "Electricity")

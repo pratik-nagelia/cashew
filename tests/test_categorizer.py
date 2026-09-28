@@ -167,6 +167,15 @@ class TestCategorize:
         result = categorize(txn, rules)
         assert result.resolved_type == TransactionType.EXCLUDE
 
+    def test_exclude_rule_assign_category_files_the_row(self, rules):
+        rules = deepcopy(rules)
+        rules["exclude_rules"].insert(0, {"match_field": "category", "pattern": "Card Payoff",
+                                          "match_mode": "exact", "assign_category": "Transfer",
+                                          "note": "moves between own accounts"})
+        result = categorize(_make_txn(category="Card Payoff"), rules)
+        assert result.resolved_type == TransactionType.EXCLUDE
+        assert result.resolved_category == "Transfer"
+
     def test_credit_card_payment_contains_match(self, rules):
         """The CC rule uses 'contains' mode — partial match should work."""
         txn = _make_txn(category="Auto Credit Card Payment")

@@ -101,7 +101,9 @@ def categorize(txn: Transaction, rules: dict) -> Transaction:
     rule = _check_rules(txn, rules.get("exclude_rules", []))
     if rule:
         txn.resolved_type = TransactionType.EXCLUDE
-        txn.resolved_category = rule.get("note", "Excluded")
+        # assign_category files the row under a category (card payments ->
+        # Transfer) for tools that list excluded rows; else the rule's note.
+        txn.resolved_category = rule.get("assign_category") or rule.get("note", "Excluded")
         return txn
 
     # Step 4: Check remittance rules
