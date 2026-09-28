@@ -80,7 +80,7 @@ Rules control how transactions are classified. Evaluation order is:
 - **income_rules** — salary and other inflows
 - **expense_overrides** — remap Monarch categories to your preferred names
 
-Categories map to a parent/subcategory hierarchy (`rules/category_hierarchy.yaml`). Each category gets an emoji prefix (🏠 Housing, 🛍️ Shopping, 🍽️ Dining, etc.) in the Google Sheet with section-specific dropdown menus.
+Categories map to a parent/subcategory hierarchy (`rules/category_hierarchy.yaml`), the single category list. Each parent has a type (expense, income, investment or exclude); each subcategory shows in the sheet with its emoji (🏠 Rent, 🛒 Groceries, 🍽️ Dining, falling back to the parent's emoji). The expense, investment and income sections get dropdowns of their parents' subcategories, and the Reports tab gets one row per expense subcategory and parent, all in YAML order. Exclude parents (Transfers) appear in neither. To add or rename a category, edit the YAML (and `rules.yaml` if a rule assigns it), not the code.
 
 ## Google Sheet Layout
 
@@ -91,11 +91,11 @@ Two tabs are owned by this tool. **It never modifies tabs it did not create.**
 Each month gets 5 columns (Date | Category | Name | Amount | spacer):
 
 - **Rows 1–5**: Summary (Income, Expenses, Investment, Diff) — all SUM formulas
-- **Rows 6–170**: Expense transactions sorted by date (165 slots)
-- **Row 171**: Investment section header with subtotal
-- **Rows 172–191**: Investment transactions (20 slots)
-- **Row 192**: Income section header with subtotal
-- **Rows 193–217**: Income transactions (25 slots)
+- **Rows 6–305**: Expense transactions sorted by date (300 slots)
+- **Row 306**: Investment section header with subtotal
+- **Rows 307–326**: Investment transactions (20 slots)
+- **Row 327**: Income section header with subtotal
+- **Rows 328–352**: Income transactions (25 slots)
 
 Sync **pads each section to its fixed size** and **raises `SectionOverflowError`** if a month has more transactions than a section can hold — it never silently truncates, since dropping rows would corrupt the SUM totals. Transactions < $1 are filtered out. Refunds appear as negative amounts and naturally subtract from totals.
 

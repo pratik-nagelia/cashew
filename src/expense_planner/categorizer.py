@@ -6,6 +6,7 @@ from typing import Optional
 import yaml
 
 from .exceptions import ConfigError
+from .hierarchy import load_hierarchy
 from .models import Transaction, TransactionType
 
 RULES_DIR = Path(__file__).parent.parent.parent / "rules"
@@ -78,7 +79,7 @@ def _check_rules(txn: Transaction, rules_list: list[dict]) -> Optional[dict]:
 def categorize(txn: Transaction, rules: dict) -> Transaction:
     """Apply rules to a single transaction, setting resolved_type and resolved_category.
 
-    Evaluation order: exclude → investment → remittance → income → expense override → default.
+    Evaluation order: hidden → investment → exclude → remittance → income → expense override → default.
     First match wins within each section. Mutates and returns the transaction.
     """
     # Step 1: Skip transactions hidden from reports
@@ -100,7 +101,9 @@ def categorize(txn: Transaction, rules: dict) -> Transaction:
     rule = _check_rules(txn, rules.get("exclude_rules", []))
     if rule:
         txn.resolved_type = TransactionType.EXCLUDE
-        txn.resolved_category = rule.get("note", "Excluded")
+        # assign_category files the row under a category (card payments ->
+        # Transfer) for tools that list excluded rows; else the rule's note.
+        txn.resolved_category = rule.get("assign_category") or rule.get("note", "Excluded")
         return txn
 
     # Step 4: Check remittance rules
@@ -154,24 +157,22 @@ def categorize_all(
 
 
 def get_known_categories(rules_file: Optional[str] = None) -> set[str]:
-    """Return the set of all category names mentioned in expense_overrides.
+    """Categories that need no new rule: every subcategory in the hierarchy
+    (a Monarch name equal to one is kept as is) plus every rule target.
 
-    Used to detect 'unknown' categories that aren't in the rules.
+    The hierarchy is the category_hierarchy.yaml next to the rules file, or
+    the default one. Used to detect 'unknown' categories.
     """
     rules = load_rules(rules_file)
     known = set()
-
-    # Collect assign_category values from expense_overrides
-    for rule in rules.get("expense_overrides", []):
-        cat = rule.get("assign_category")
-        if cat:
-            known.add(cat)
-
-    # Also collect category patterns used in income/remittance/exclude rules
-    for section in ["income_rules", "investment_rules", "remittance_rules", "exclude_rules"]:
-        for rule in rules.get(section, []):
+    for section in ["expense_overrides", "income_rules", "investment_rules", "remittance_rules", "exclude_rules"]:
+        for rule in rules.get(section) or []:
             cat = rule.get("assign_category")
             if cat:
                 known.add(cat)
 
+    sibling = Path(rules_file).parent / "category_hierarchy.yaml" if rules_file else None
+    hierarchy = load_hierarchy(str(sibling) if sibling and sibling.exists() else None)
+    for info in hierarchy.values():
+        known.update(info.get("subcategories", []))
     return known

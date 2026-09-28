@@ -167,6 +167,15 @@ class TestCategorize:
         result = categorize(txn, rules)
         assert result.resolved_type == TransactionType.EXCLUDE
 
+    def test_exclude_rule_assign_category_files_the_row(self, rules):
+        rules = deepcopy(rules)
+        rules["exclude_rules"].insert(0, {"match_field": "category", "pattern": "Card Payoff",
+                                          "match_mode": "exact", "assign_category": "Transfer",
+                                          "note": "moves between own accounts"})
+        result = categorize(_make_txn(category="Card Payoff"), rules)
+        assert result.resolved_type == TransactionType.EXCLUDE
+        assert result.resolved_category == "Transfer"
+
     def test_credit_card_payment_contains_match(self, rules):
         """The CC rule uses 'contains' mode — partial match should work."""
         txn = _make_txn(category="Auto Credit Card Payment")
@@ -352,6 +361,16 @@ class TestGetKnownCategories:
     def test_contains_remittance_category(self, sample_rules_file):
         known = get_known_categories(sample_rules_file)
         assert "India Transfer" in known
+
+    def test_a_hierarchy_subcategory_needs_no_rule(self, tmp_path):
+        """Monarch names equal to a subcategory are kept as is, so they're known."""
+        (tmp_path / "rules.yaml").write_text("expense_overrides: []\n")
+        (tmp_path / "category_hierarchy.yaml").write_text(
+            "hierarchy:\n  Food:\n    type: expense\n    subcategories: [Groceries]\n"
+        )
+        known = get_known_categories(str(tmp_path / "rules.yaml"))
+        assert "Groceries" in known
+        assert "Pet Care" not in known
 
     def test_pet_care_not_known(self, sample_rules_file):
         """Pet Care is not in the rules — should be detected as unknown."""
