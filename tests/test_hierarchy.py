@@ -127,7 +127,10 @@ OWNER_MONARCH_CATEGORIES = [
     "Phone", "Travel Food", "Taxes", "Taxi & Ride Shares", "Postage & Shipping", "Vape & Nashe",
     "Business Income",
 ]
-EXCLUDED = {"Transfer", "Credit Card Payment", "Balance Adjustments"}
+# Monarch name -> Transfers subcategory: card payments apart from other moves
+# between own accounts (balance fixes aren't money moving; filed with them).
+EXCLUDED = {"Transfer": "Internal Transfer", "Credit Card Payment": "Credit Card Payment",
+            "Balance Adjustments": "Internal Transfer"}
 
 
 @pytest.mark.parametrize("monarch_name", OWNER_MONARCH_CATEGORIES)
@@ -142,8 +145,7 @@ def test_every_owner_monarch_category_lands_on_a_subcategory_of_the_right_type(m
     )
     categorize(txn, rules)
     if monarch_name in EXCLUDED:
-        # Card payments and balance fixes are transfers between own accounts.
-        assert (txn.resolved_type, txn.resolved_category) == (TransactionType.EXCLUDE, "Transfer")
+        assert (txn.resolved_type, txn.resolved_category) == (TransactionType.EXCLUDE, EXCLUDED[monarch_name])
         return
     assert txn.resolved_category in parent_of, f"{monarch_name} -> {txn.resolved_category}, not in the hierarchy"
     assert hierarchy[parent_of[txn.resolved_category]]["type"] == txn.resolved_type.value

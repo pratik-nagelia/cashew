@@ -2,26 +2,26 @@
 # Rules evaluated: hidden → investment → exclude → remittance → income → expense override → default
 # First match wins within each section.
 #
-# Last updated: 2026-09-27 (owner's trimmed list; see category_hierarchy.yaml)
+# Last updated: 2026-09-30 (Transfers split into Internal Transfer and Credit Card Payment)
 
 # --- Exclusions (internal transfers, double-counting) ---
 exclude_rules:
   - match_field: category
     pattern: "Transfer"
     match_mode: exact
-    assign_category: "Transfer"
-    note: "Internal transfers between own accounts (fills CC payments etc)"
+    assign_category: "Internal Transfer"
+    note: "Moves between own accounts"
 
   - match_field: category
     pattern: "Credit Card Payment"
     match_mode: contains
-    assign_category: "Transfer"
+    assign_category: "Credit Card Payment"
     note: "CC payments are not real expenses (already counted on the CC)"
 
   - match_field: category
     pattern: "Balance Adjustments"
     match_mode: exact
-    assign_category: "Transfer"
+    assign_category: "Internal Transfer"
     note: "Monarch's manual balance corrections, not money moving"
 
 # --- Investments (tracked separately — not expenses) ---

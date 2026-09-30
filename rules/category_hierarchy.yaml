@@ -126,7 +126,8 @@ hierarchy:
     emoji: "🔁"
     type: exclude
     subcategories:
-      - Transfer
+      - Internal Transfer
+      - Credit Card Payment
 
 # How much say the owner has over each expense subcategory (every expense
 # subcategory has one):
@@ -208,4 +209,5 @@ subcategory_emoji:
   Stocks: "📊"
   FDs: "🏦"
   India Transfer: "🇮🇳"
-  Transfer: "🔁"
+  Internal Transfer: "🔁"
+  Credit Card Payment: "💳"
